@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SpendWise — Spend today. Plan tomorrow.</title>
+<meta name="description" content="SpendWise tells you if a purchase is safe before you pay, and moves money into your goals automatically. Built for every stage of life in India.">
+<meta name="theme-color" content="#030712">
+<meta property="og:title" content="SpendWise — Spend today. Plan tomorrow.">
+<meta property="og:description" content="Ask before you swipe. Get a clear verdict on every purchase.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2310b981'/><path d='M7 22l7-7 4 4 7-8' stroke='black' stroke-width='3' fill='none' stroke-linecap='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#030712;--panel:#0b1220;--line:#1e293b;--tx:#e2e8f0;--mu:#94a3b8;--em:#34d399;--cy:#22d3ee;--am:#fbbf24;--rd:#f87171;--r:20px;--pad:clamp(20px,5vw,40px)}
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth;scroll-padding-top:84px}
+body{background:var(--bg);color:var(--tx);font:400 16px/1.6 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;padding-bottom:env(safe-area-inset-bottom)}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+:focus-visible{outline:2px solid var(--em);outline-offset:3px;border-radius:8px}
+svg.i{width:1.1em;height:1.1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.wrap{max-width:1160px;margin:0 auto;padding:0 var(--pad)}
+.glow{position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(520px circle at var(--x,50%) var(--y,20%),rgba(16,185,129,.11),transparent 70%)}
+.halo{position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(600px 400px at -5% -5%,rgba(16,185,129,.18),transparent),radial-gradient(700px 500px at 105% 35%,rgba(59,130,246,.13),transparent)}
+main,footer{position:relative;z-index:1}
+/* nav */
+header{position:fixed;inset:0 0 auto;z-index:50;padding-top:env(safe-area-inset-top);transition:.3s}
+header.s{background:rgba(3,7,18,.82);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+.nav{height:72px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:-.02em}
+.mark{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,#10b981,#06b6d4);display:grid;place-items:center;color:#000;box-shadow:0 6px 20px rgba(16,185,129,.3)}
+.links{display:flex;gap:30px;font-size:14px;font-weight:500;color:var(--mu)}
+.links a:hover{color:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:14px 26px;border-radius:14px;font-weight:700;font-size:15px;transition:transform .2s,box-shadow .2s,background .2s}
+.pri{background:linear-gradient(90deg,#34d399,#22d3ee);color:#021;box-shadow:0 10px 30px rgba(16,185,129,.25)}
+.pri:hover{transform:translateY(-2px);box-shadow:0 14px 36px rgba(16,185,129,.38)}
+.gho{border:1px solid var(--line);background:rgba(15,23,42,.7);color:var(--tx)}
+.gho:hover{border-color:#334155;background:#0f172a}
+.sm{padding:10px 18px;font-size:14px}
+.burger{display:none;width:44px;height:44px;border-radius:12px;border:1px solid var(--line);place-items:center}
+.menu{display:none}
+/* hero */
+.hero{padding:clamp(120px,16vw,170px) 0 80px}
+.hgrid{display:grid;grid-template-columns:1fr;gap:48px;justify-items:center;text-align:center}.hgrid .lead{margin-inline:auto}.hgrid .row,.hgrid .note{justify-content:center}.demo{width:min(620px,100%)}
+h1{font-size:clamp(44px,7.4vw,92px);font-weight:900;line-height:1;letter-spacing:-.04em}
+h1 em{font-style:normal;background:linear-gradient(90deg,#34d399,#67e8f9);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{font-size:clamp(17px,2vw,20px);color:var(--mu);max-width:34em;margin:26px 0 34px}
+.row{display:flex;flex-wrap:wrap;gap:12px}
+.note{margin-top:22px;font-size:13px;color:#64748b;display:flex;gap:8px;align-items:center}
+/* demo */
+.demo{background:linear-gradient(180deg,#0f172a,#0a101e);border:1px solid var(--line);border-radius:28px;padding:clamp(20px,3vw,30px);box-shadow:0 30px 80px rgba(0,0,0,.5),0 0 0 1px rgba(52,211,153,.06);position:relative}
+.demo h2{font-size:15px;font-weight:600;color:var(--mu);margin-bottom:14px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.chip{padding:8px 14px;border-radius:999px;border:1px solid var(--line);font-size:13px;font-weight:500;color:var(--mu);transition:.2s}
+.chip:hover{color:#fff;border-color:#334155}
+.chip[aria-pressed=true]{background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.5);color:var(--em)}
+.amt{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.amt b{font-size:clamp(34px,5vw,44px);font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.amt span{font-size:13px;color:var(--mu)}
+input[type=range]{width:100%;height:36px;accent-color:#34d399;background:none;cursor:pointer}
+.bar{height:10px;border-radius:9px;background:#1e293b;overflow:hidden;margin:6px 0 8px}
+.bar i{display:block;height:100%;width:100%;border-radius:9px;background:var(--em);transition:width .35s cubic-bezier(.3,.8,.3,1),background .3s}
+.bl{display:flex;justify-content:space-between;font-size:12.5px;color:var(--mu);font-variant-numeric:tabular-nums}
+.verd{margin-top:20px;padding:18px;border-radius:16px;border:1px solid;display:flex;gap:14px;align-items:flex-start;transition:background .3s,border-color .3s}
+.verd.g{background:rgba(52,211,153,.08);border-color:rgba(52,211,153,.35)}
+.verd.a{background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.35)}
+.verd.r{background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.4)}
+.verd .ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:none;font-size:18px}
+.g .ic{background:var(--em);color:#021}.a .ic{background:var(--am);color:#210}.r .ic{background:var(--rd);color:#200}
+.verd strong{display:block;font-size:17px;line-height:1.3}
+.verd p{font-size:14px;color:var(--mu);margin-top:3px}
+.fine{font-size:12px;color:#64748b;margin-top:14px;text-align:center}
+/* profiles */
+.tabs{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 14px;margin-bottom:6px;scrollbar-width:thin;scroll-snap-type:x proximity}
+.tab{flex:none;scroll-snap-align:start;padding:10px 18px;border-radius:999px;border:1px solid var(--line);font-size:14px;font-weight:600;color:var(--mu);white-space:nowrap;transition:.2s}
+.tab:hover{color:#fff;border-color:#334155}
+.tab[aria-selected=true]{background:var(--em);border-color:var(--em);color:#021}
+.pp{display:grid;grid-template-columns:1fr 1fr;gap:clamp(24px,4vw,56px);padding:clamp(24px,4vw,44px);border:1px solid var(--line);border-radius:24px;background:linear-gradient(180deg,#0f172a,#0a101e);min-height:290px}
+.pp h3{font-size:clamp(26px,3.6vw,38px);font-weight:800;letter-spacing:-.03em;line-height:1.1}
+.pp .who{color:var(--em);font-size:14px;font-weight:600;margin:8px 0 14px}
+.pp .one{color:var(--mu);font-size:17px}
+.pp ul{list-style:none;padding:0;display:grid;gap:14px;align-content:center}
+.pp li{display:flex;gap:12px;padding:16px;border-radius:14px;background:rgba(3,7,18,.5);border:1px solid var(--line);font-size:15px}
+.pp li svg{color:var(--em);margin-top:4px}
+.pp.sw{animation:sw .35s}@keyframes sw{from{opacity:.2;transform:translateY(6px)}}
+/* auth overlay + app shell */
+#auth{position:fixed;inset:0;z-index:100;display:none;overflow-y:auto;background:rgba(3,7,18,.92);backdrop-filter:blur(14px);padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom))}
+#auth.o{display:grid;place-items:center}
+.ac{position:relative;width:min(440px,100%);padding:clamp(22px,4vw,32px);border-radius:26px;background:#0f172a;border:1px solid var(--line);box-shadow:0 30px 90px #000;margin:auto}
+.seg{display:grid;grid-template-columns:1fr 1fr;padding:4px;border-radius:14px;background:var(--bg);border:1px solid var(--line);margin:0 0 22px}
+.seg button{padding:10px;border-radius:10px;font-weight:600;color:var(--mu)}.seg [aria-selected=true]{background:#1e293b;color:#fff}
+.ac h2{font-size:26px;font-weight:800;letter-spacing:-.03em}.ac .sub{margin:6px 0 20px;font-size:15px}
+.or{display:flex;align-items:center;gap:12px;color:#64748b;font-size:13px;margin:18px 0}.or:before,.or:after{content:"";flex:1;height:1px;background:var(--line)}
+.ac input,.ac select{width:100%;padding:14px;border-radius:12px;background:var(--bg);border:1px solid var(--line);color:#fff;font:inherit;margin-bottom:14px}
+.ac input:focus,.ac select:focus{outline:0;border-color:var(--em)}
+.er{display:none;margin:-4px 0 14px;padding:10px 12px;border-radius:10px;font-size:14px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.4);color:var(--rd)}.er.s{display:block}
+.xb{position:absolute;top:12px;right:12px;width:40px;height:40px;display:grid;place-items:center;border-radius:10px;color:var(--mu)}.xb:hover{color:#fff}
+.lg{font-size:12px;color:#64748b;text-align:center;margin-top:16px}
+#app{display:none;position:relative;z-index:1;min-height:100dvh;padding:max(20px,env(safe-area-inset-top)) var(--pad) 40px}
+body.in #app{display:block}body.in header,body.in main,body.in footer,body.in .sticky,body.in .halo,body.in .glow{display:none}
+.atop{display:flex;justify-content:space-between;align-items:center;max-width:1160px;margin:0 auto 32px}
+#appRoot{max-width:1160px;margin:0 auto}
+/* sections */
+section{padding:clamp(64px,9vw,110px) 0}
+.sh{max-width:640px;margin-bottom:clamp(36px,5vw,60px)}
+h2.t{font-size:clamp(32px,5vw,54px);font-weight:800;letter-spacing:-.035em;line-height:1.08}
+.sub{color:var(--mu);margin-top:16px;font-size:clamp(16px,1.8vw,18px)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--panel)}
+.step{padding:clamp(24px,3vw,36px);border-right:1px solid var(--line)}
+.step:last-child{border:0}
+.step .n{width:34px;height:34px;border-radius:50%;border:1px solid rgba(52,211,153,.5);color:var(--em);display:grid;place-items:center;font-weight:700;font-size:14px;margin-bottom:20px}
+.step h3,.card h3{font-size:20px;font-weight:700;letter-spacing:-.01em;margin-bottom:8px}
+.step p,.card p{color:var(--mu);font-size:15px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.card{padding:clamp(24px,3vw,34px);border-radius:var(--r);background:var(--panel);border:1px solid var(--line);transition:border-color .25s,transform .25s}
+.card:hover{transform:translateY(-4px)}
+.card .ico{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;margin-bottom:22px;font-size:22px}
+.c1 .ico{background:rgba(52,211,153,.1);color:var(--em)}.c1:hover{border-color:rgba(52,211,153,.5)}
+.c2 .ico{background:rgba(96,165,250,.1);color:#60a5fa}.c2:hover{border-color:rgba(96,165,250,.5)}
+.c3 .ico{background:rgba(192,132,252,.1);color:#c084fc}.c3:hover{border-color:rgba(192,132,252,.5)}
+.price{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:900px}
+.plan{padding:clamp(26px,3.5vw,38px);border-radius:24px;background:var(--panel);border:1px solid var(--line);display:flex;flex-direction:column;position:relative}
+.plan.hot{background:linear-gradient(180deg,#0f172a,#06251e);border-color:rgba(52,211,153,.5);box-shadow:0 20px 60px rgba(16,185,129,.1)}
+.tag{position:absolute;top:-12px;right:26px;background:var(--em);color:#021;font-size:12px;font-weight:700;padding:4px 12px;border-radius:999px}
+.plan h3{font-size:24px;font-weight:800}
+.pr{font-size:42px;font-weight:900;letter-spacing:-.03em;margin:12px 0 2px}
+.pr small{font-size:15px;font-weight:500;color:var(--mu);letter-spacing:0}
+.plan>p{color:var(--mu);font-size:14px}
+.plan ul{list-style:none;padding:0;margin:24px 0 30px;display:grid;gap:12px;font-size:15px;flex:1}
+.plan li{display:flex;gap:10px;align-items:flex-start}
+.plan li svg{color:var(--em);margin-top:5px}
+.plan .btn{width:100%}
+details{border-bottom:1px solid var(--line)}
+summary{list-style:none;cursor:pointer;padding:22px 0;font-weight:600;font-size:18px;display:flex;justify-content:space-between;gap:16px;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary svg{transition:transform .3s;color:var(--mu)}
+details[open] summary svg{transform:rotate(45deg);color:var(--em)}
+details p{color:var(--mu);padding:0 40px 24px 0;max-width:46em}
+.faq{max-width:780px}
+.chatbox{max-width:780px;background:linear-gradient(180deg,#0f172a,#0a101e);border:1px solid var(--line);border-radius:28px;padding:clamp(16px,2.4vw,22px);box-shadow:0 30px 80px rgba(0,0,0,.45),0 0 0 1px rgba(52,211,153,.06);display:flex;flex-direction:column;min-height:min(520px,70vh)}
+.chatlog{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:4px 4px 16px;max-height:min(420px,52vh);scrollbar-width:thin}
+.cmsg{max-width:86%;padding:12px 16px;border-radius:16px;font-size:15px;line-height:1.55}
+.cmsg.bot{align-self:flex-start;background:rgba(15,23,42,.9);border:1px solid var(--line);border-bottom-left-radius:6px;color:var(--tx)}
+.cmsg.me{align-self:flex-end;background:rgba(52,211,153,.14);border:1px solid rgba(52,211,153,.35);border-bottom-right-radius:6px}
+.cmsg .who{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--em);margin-bottom:4px}
+.cmsg.me .who{color:#67e8f9}
+.cmsg p+p{margin-top:8px}
+.chatqs{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 14px}
+.chatin{display:flex;gap:10px;align-items:flex-end}
+.chatin textarea{flex:1;min-height:48px;max-height:120px;resize:none;padding:12px 14px;border-radius:14px;background:var(--bg);border:1px solid var(--line);color:#fff;font:inherit;line-height:1.4}
+.chatin textarea:focus{outline:0;border-color:var(--em)}
+.chatin .btn{flex:none;height:48px;padding:0 16px;border-radius:14px}
+.dots3{display:flex;gap:5px;padding:6px 0;align-items:center}
+.dots3 i{width:6px;height:6px;border-radius:50%;background:var(--em);opacity:.35;animation:dot 1s infinite}
+.dots3 i:nth-child(2){animation-delay:.15s}.dots3 i:nth-child(3){animation-delay:.3s}
+@keyframes dot{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+.cta{text-align:center;padding:clamp(48px,7vw,84px) var(--pad);border-radius:32px;border:1px solid rgba(52,211,153,.3);background:radial-gradient(600px 300px at 50% 0,rgba(16,185,129,.18),transparent),var(--panel)}
+.cta h2{font-size:clamp(34px,6vw,64px);font-weight:900;letter-spacing:-.04em;line-height:1.05}
+.cta p{color:var(--mu);margin:16px auto 30px;max-width:30em}
+.cta .row{justify-content:center}
+footer{border-top:1px solid var(--line);padding:40px 0 calc(40px + env(safe-area-inset-bottom));color:#64748b;font-size:14px}
+.fr{display:flex;flex-wrap:wrap;justify-content:space-between;gap:20px;align-items:center}
+.fr nav{display:flex;gap:22px}.fr a:hover,.fr button:hover{color:#fff}
+/* modal */
+dialog{margin:auto;width:min(440px,calc(100% - 32px));padding:28px;border-radius:24px;background:#0f172a;border:1px solid var(--line);color:var(--tx);box-shadow:0 30px 90px #000}
+dialog::backdrop{background:rgba(0,0,0,.75);backdrop-filter:blur(8px)}
+dialog h2{font-size:22px;font-weight:800;margin-bottom:6px}
+dialog p{color:var(--mu);font-size:14px;margin-bottom:20px}
+label{display:block;font-size:13px;font-weight:600;color:var(--mu);margin:0 0 6px}
+input[type=email],input[type=password]{width:100%;padding:14px;border-radius:12px;background:#030712;border:1px solid var(--line);color:#fff;font:inherit;margin-bottom:16px}
+input:focus{outline:0;border-color:var(--em)}
+.x{position:absolute;top:16px;right:16px;width:40px;height:40px;display:grid;place-items:center;border-radius:10px;color:var(--mu)}
+.x:hover{color:#fff}
+.sticky{display:none}
+@media(max-width:900px){
+.links,.nav>.btn{display:none}.burger{display:grid}
+.menu{position:fixed;inset:72px 0 auto;background:rgba(3,7,18,.97);backdrop-filter:blur(16px);border-bottom:1px solid var(--line);padding:12px var(--pad) 24px;z-index:49;flex-direction:column}
+.menu.o{display:flex}
+.menu a{padding:16px 0;border-bottom:1px solid var(--line);font-weight:600;font-size:18px}
+
+.steps,.cards,.price{grid-template-columns:1fr}
+.step{border-right:0;border-bottom:1px solid var(--line)}.step:last-child{border:0}
+.fr{flex-direction:column;align-items:flex-start}
+.sticky{display:flex;position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:40;transform:translateY(140%);transition:transform .35s}
+.sticky.v{transform:none}.sticky .btn{width:100%;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+footer{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+}
+@media(max-width:900px){.pp{grid-template-columns:1fr}}
+@media(max-width:480px){.row .btn{width:100%}.verd{padding:14px}details p{padding-right:0}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media(hover:none){.glow{display:none}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="up" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></symbol>
+<symbol id="ok" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+<symbol id="no" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></symbol>
+<symbol id="wa" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></symbol>
+<symbol id="pl" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="br" viewBox="0 0 24 24"><path d="M12 3a4 4 0 00-4 4 4 4 0 00-3 6 4 4 0 003 6 4 4 0 008 0 4 4 0 003-6 4 4 0 00-3-6 4 4 0 00-4-4zM12 3v18"/></symbol>
+<symbol id="rf" viewBox="0 0 24 24"><path d="M21 12a9 9 0 01-15 6.7L3 16M3 12a9 9 0 0115-6.7L21 8M21 3v5h-5M3 21v-5h5"/></symbol>
+<symbol id="tg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></symbol>
+<symbol id="sd" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></symbol>
+</svg>
+<div class="halo"></div><div class="glow" id="glow"></div>
+
+<header id="hd">
+<div class="wrap nav">
+<a href="#top" class="logo"><span class="mark"><svg class="i" style="stroke-width:2.6"><use href="#up"/></svg></span>SpendWise</a>
+<nav class="links" aria-label="Main"><a href="#how">How it works</a><a href="#profiles">Profiles</a><a href="#why">Why SpendWise</a><a href="#pricing">Pricing</a><a href="#advisor">Ask AI</a><a href="#faq">FAQ</a></nav>
+<button class="btn pri sm" data-open>Open the app</button>
+<button class="burger" id="bg" aria-label="Menu" aria-expanded="false" aria-controls="mn"><svg class="i" width="22" height="22"><use href="#pl"/></svg></button>
+</div>
+<nav class="menu" id="mn" aria-label="Mobile"><a href="#how">How it works</a><a href="#profiles">Profiles</a><a href="#why">Why SpendWise</a><a href="#pricing">Pricing</a><a href="#advisor">Ask AI</a><a href="#faq">FAQ</a></nav>
+</header>
+
+<main id="top">
+<section class="hero" style="padding-bottom:80px">
+<div class="wrap hgrid">
+<div>
+<h1>Spend today.<br><em>Plan tomorrow.</em></h1>
+<p class="lead">SpendWise tells you whether a purchase is safe before you pay, then quietly moves money into the goals you actually care about.</p>
+<div class="row">
+<button class="btn pri" data-open>Open the app <svg class="i"><use href="#up"/></svg></button>
+<a href="#how" class="btn gho">See how it works</a>
+</div>
+<p class="note"><svg class="i"><use href="#ok"/></svg>Free to start. Works in your browser and installs like an app.</p>
+</div>
+
+<div class="demo" aria-labelledby="dh">
+<h2 id="dh">Try it: can I afford this?</h2>
+<div class="chips" role="group" aria-label="Quick picks">
+<button class="chip" data-v="180" aria-pressed="false">Coffee</button>
+<button class="chip" data-v="1200" aria-pressed="false">Dinner out</button>
+<button class="chip" data-v="2400" aria-pressed="false">Headphones</button>
+<button class="chip" data-v="4500" aria-pressed="false">Sneakers</button>
+<button class="chip" data-v="9000" aria-pressed="false">Weekend trip</button>
+</div>
+<div class="amt"><b id="av">₹1,200</b><span>drag to change</span></div>
+<input type="range" id="rg" min="0" max="10000" step="50" value="1200" aria-label="Purchase amount in rupees">
+<div class="bar" aria-hidden="true"><i id="bf"></i></div>
+<div class="bl"><span>Safe to spend left: <b id="sl">₹2,800</b></span><span>After: <b id="af"></b></span></div>
+<div class="verd g" id="vd" role="status" aria-live="polite">
+<span class="ic"><svg class="i"><use id="vi" href="#ok"/></svg></span>
+<div><strong id="vt"></strong><p id="vp"></p></div>
+</div>
+<p class="fine">Demo uses a sample ₹25,000 monthly allowance, rent and a Goa trip vault.</p>
+</div>
+</div>
+</section>
+
+<section id="how" style="padding-top:20px">
+<div class="wrap">
+<div class="sh"><h2 class="t">Three steps. Then it runs itself.</h2><p class="sub">No spreadsheets, no guilt, no end-of-month surprises.</p></div>
+<div class="steps">
+<div class="step"><div class="n">1</div><h3>Add your money in</h3><p>Enter your stipend or allowance. SpendWise works out what is committed and what is truly yours to spend.</p></div>
+<div class="step"><div class="n">2</div><h3>Ask before you swipe</h3><p>Type the price. Get a clear green, amber or red verdict, plus what it does to your goals.</p></div>
+<div class="step"><div class="n">3</div><h3>Watch your goals fill</h3><p>Small automatic amounts flow into vaults for travel, studies and emergencies, without you thinking about it.</p></div>
+</div>
+</div>
+</section>
+
+<section id="profiles" style="padding-top:20px">
+<div class="wrap">
+<div class="sh"><h2 class="t">One app. A profile for every stage of life.</h2><p class="sub">Pick yours and SpendWise adapts its goals, language and advice to how you actually earn and spend.</p></div>
+<div class="tabs" role="tablist" aria-label="Profiles" id="tabs"></div>
+<div class="pp" id="pp" role="tabpanel" aria-live="polite"></div>
+<div class="row" style="margin-top:24px"><button class="btn pri" data-open>Choose your profile <svg class="i"><use href="#up"/></svg></button></div>
+</div>
+</section>
+
+<section id="why" style="padding-top:20px">
+<div class="wrap">
+<div class="sh"><h2 class="t">Other apps show you what you did wrong. This one stops you first.</h2></div>
+<div class="cards">
+<div class="card c1"><div class="ico"><svg class="i"><use href="#br"/></svg></div><h3>Verdicts before purchases</h3><p>See how any purchase changes your safe-to-spend balance and your goal vaults, instantly.</p></div>
+<div class="card c2"><div class="ico"><svg class="i"><use href="#rf"/></svg></div><h3>Tracking that logs itself</h3><p>With Copilot, UPI and bank transactions sync automatically. No typing in every chai.</p></div>
+<div class="card c3"><div class="ico"><svg class="i"><use href="#tg"/></svg></div><h3>Goal vaults that do the math</h3><p>Tell it the trip, laptop or emergency fund. It calculates the monthly amount to get there on time.</p></div>
+</div>
+</div>
+</section>
+
+<section id="pricing" style="padding-top:20px">
+<div class="wrap">
+<div class="sh"><h2 class="t">Start free. Upgrade when it pays off.</h2></div>
+<div class="price">
+<div class="plan"><h3>Core</h3><div class="pr">₹0</div><p>Everything you need to start.</p>
+<ul><li><svg class="i"><use href="#ok"/></svg>Real-time safe-to-spend balance</li><li><svg class="i"><use href="#ok"/></svg>Up to 2 goal vaults</li><li><svg class="i"><use href="#ok"/></svg>Monthly summaries</li><li><svg class="i"><use href="#ok"/></svg>Data stays on your device</li></ul>
+<button class="btn gho" data-open>Start free</button></div>
+<div class="plan hot"><span class="tag">Most popular</span><h3>Copilot</h3><div class="pr">₹2,000<small> / year</small></div><p>About ₹167 a month.</p>
+<ul><li><svg class="i"><use href="#ok"/></svg>Automatic UPI and bank sync</li><li><svg class="i"><use href="#ok"/></svg>Unlimited goal vaults and emergency cushion</li><li><svg class="i"><use href="#ok"/></svg>Predictive AI verdicts</li><li><svg class="i"><use href="#ok"/></svg>Deep spending insights</li></ul>
+<button class="btn pri" data-open>Get Copilot</button></div>
+</div>
+</div>
+</section>
+
+<section id="advisor" style="padding-top:40px">
+<div class="wrap">
+<div class="sh"><h2 class="t">Ask how to plan your future.</h2><p class="sub">A calm money coach for tight months, long-term goals, and the next right step. Same NVIDIA model SpendWise uses for allocation math. General guidance, not regulated advice.</p></div>
+<div class="chatbox" id="lchat">
+<div class="chatlog" id="lclog" aria-live="polite"></div>
+<div class="chatqs" id="lcqs"></div>
+<form class="chatin" id="lcform">
+<textarea id="lcinput" rows="1" maxlength="800" placeholder="Ask about a tight month, a goal, or the next five years…" aria-label="Message the SpendWise advisor"></textarea>
+<button class="btn pri" type="submit" id="lcsend" aria-label="Send">Send <svg class="i"><use href="#sd"/></svg></button>
+</form>
+<p class="fine" style="margin-bottom:0">Your question is sent to the AI. Do not include your name, email, or account numbers.</p>
+</div>
+</div>
+</section>
+
+<section id="faq" style="padding-top:20px">
+<div class="wrap faq">
+<div class="sh"><h2 class="t">Questions, answered.</h2></div>
+<details><summary>Who is SpendWise for?<svg class="i"><use href="#pl"/></svg></summary><p>Anyone whose money has to last: children learning the basics, teens, college students, working professionals, senior citizens, armed forces and All India Services officers, OCI cardholders and families relying on government schemes. Each gets a profile built around how they earn and spend.</p></details>
+<details><summary>Do I need to install anything?<svg class="i"><use href="#pl"/></svg></summary><p>No app store needed. SpendWise is a web app you open in your browser, and you can add it to your home screen to use it like a native app.</p></details>
+<details><summary>Is the free plan really free?<svg class="i"><use href="#pl"/></svg></summary><p>Yes. Core has no trial clock and no card required. Upgrade to Copilot only if you want automatic syncing and unlimited vaults.</p></details>
+<details><summary>Where is my data kept?<svg class="i"><use href="#pl"/></svg></summary><p>On the free plan, your data is stored locally on your device. Copilot adds automatic bank and UPI syncing, which you choose to switch on.</p></details>
+</div>
+</section>
+
+<section style="padding-top:20px">
+<div class="wrap"><div class="cta">
+<h2>Your next purchase deserves a second opinion.</h2>
+<p>Open SpendWise, enter one number, and see the verdict in seconds.</p>
+<div class="row"><button class="btn pri" data-open>Open the app <svg class="i"><use href="#up"/></svg></button></div>
+</div></div>
+</section>
+</main>
+
+<footer><div class="wrap fr">
+<a href="#top" class="logo" style="font-size:16px;color:#fff"><span class="mark" style="width:30px;height:30px;border-radius:9px"><svg class="i"><use href="#up"/></svg></span>SpendWise</a>
+<span>© 2026 SpendWise. Every rupee today moves you closer to tomorrow.</span>
+<nav><button data-open>Sign in</button><a href="#advisor">Ask AI</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></nav>
+</div></footer>
+
+<div class="sticky" id="st"><button class="btn pri" data-open>Open the app <svg class="i"><use href="#up"/></svg></button></div>
+
+<section id="auth" role="dialog" aria-modal="true" aria-labelledby="ah"><div class="ac">
+<button class="xb" id="ax" aria-label="Close"><svg class="i"><use href="#pl" style="transform:rotate(45deg);transform-origin:center"/></svg></button>
+<div class="seg" role="tablist"><button role="tab" id="ti" aria-selected="true">Sign in</button><button role="tab" id="tu" aria-selected="false">Create account</button></div>
+<h2 id="ah">Welcome back</h2><p class="sub" id="as">Sign in to open your dashboard.</p>
+<div id="gw" hidden><div id="gb" style="display:flex;justify-content:center;min-height:44px"></div><div class="or">or use your email</div></div>
+<form id="authform" novalidate>
+<input id="an" placeholder="Full name" autocomplete="name" hidden>
+<input id="ae" type="email" placeholder="Email" autocomplete="email" inputmode="email" required>
+<input id="ap" type="password" placeholder="Password (8+ characters)" autocomplete="current-password" required>
+<div class="er" id="aer" role="alert"></div>
+<button class="btn pri" id="asb" style="width:100%" type="submit">Sign in</button></form>
+<p class="lg">Your data is encrypted on this device with AES-256. We never sell it.</p>
+</div></section>
+<div id="app"><div class="atop"><a class="logo" href="#"><span class="mark"><svg class="i" style="stroke-width:2.6"><use href="#up"/></svg></span>SpendWise</a><button class="btn gho sm" id="lo">Sign out</button></div><div id="appRoot"></div></div>
+
+<script>
+// Set this to your PWA's URL.
+const APP_URL='/app/';
+const $=id=>document.getElementById(id),fmt=n=>(n<0?'-':'')+'₹'+Math.abs(Math.round(n)).toLocaleString('en-IN');
+const LEFT=2800,PERDAY=100; // sample safe-to-spend and daily Goa-vault contribution
+const rg=$('rg'),chips=[...document.querySelectorAll('.chip')];
+function verdict(){
+ const p=+rg.value,after=LEFT-p,pct=p/LEFT;
+ $('av').textContent=fmt(p);$('af').textContent=fmt(after);
+ $('bf').style.width=Math.max(0,Math.min(100,after/LEFT*100))+'%';
+ let c='g',i='#ok',t,d;
+ if(pct<=.35){t='Go ahead.';d=p?`You'll still have ${fmt(after)} safe to spend this month.`:'Pick something or drag the slider.'}
+ else if(pct<=1){c='a';i='#wa';t='Think twice.';d=`You can afford it, but only ${fmt(after)} would be left for the rest of the month.`}
+ else{c='r';i='#no';t='Not this month.';d=`That's ${fmt(-after)} over your safe limit and would delay your Goa trip by about ${Math.ceil(-after/PERDAY)} days.`}
+ $('bf').style.background=c=='g'?'var(--em)':c=='a'?'var(--am)':'var(--rd)';
+ $('vd').className='verd '+c;$('vi').setAttribute('href',i);$('vt').textContent=t;$('vp').textContent=d;
+ chips.forEach(b=>b.setAttribute('aria-pressed',+b.dataset.v===p));
+}
+rg.addEventListener('input',verdict);
+chips.forEach(b=>b.addEventListener('click',()=>{rg.value=b.dataset.v;verdict()}));
+verdict();
+// profiles
+const P=[
+["Learners","Kids who are new to money","Money basics, learned by playing.",["A pocket-money jar that shows where every rupee goes","Simple save-or-spend choices with instant feedback","A first goal to save for, like a bicycle or a game"]],
+["Teens","Side hustles and monthly allowances","Treat your first income like a pro.",["Track allowance and side-hustle earnings in one place","A verdict before you buy, so the month does not run dry","A goal vault for your first big purchase"]],
+["Young adults","College students, with or without a job","Fees, loans and a part-time salary, all planned.",["Fee due dates mapped against what you earn","Loan planner for big costs such as medical student loans","See what repayments will look like after graduation"]],
+["Working professionals","Ages 30 to 60","Your salary, split before you spend it.",["Bills, EMIs and goals separated from free spending","An emergency cushion that builds automatically","Insights that show where the month actually went"]],
+["Senior citizens","Ages 60 and above","Calm, clear and built around a fixed income.",["Pension and savings in one simple view","A buffer set aside for medical expenses","Large, easy-to-read screens with no jargon"]],
+["Armed forces","Indian Navy, Army and Air Force officers","Built around pay, postings and life after service.",["Pay and allowances tracked month by month","Plan for relocation costs when a posting changes","Long-term goals for life after service"]],
+["All India Services","IAS, IPS and IFoS officers","Plan through every transfer.",["Budgets that move with your postings","Track housing and family costs across stations","Long-term goals that outlast any single posting"]],
+["OCI","Overseas Citizens of India","Your money in India, in one view.",["Rupee and foreign-currency spending together","Plan India-side costs such as family support and property","Goals for the time you spend in India"]],
+["BPL families","Government schemes and subsidies","Know what support you can claim.",["Learn about schemes and subsidies you may qualify for","Track benefits as they arrive","Simple screens focused on essentials"]]];
+const tb=$('tabs'),pp=$('pp'),ck='<svg class="i"><use href="#ok"/></svg>';
+function show(i){
+ const [n,w,o,b]=P[i];
+ [...tb.children].forEach((t,j)=>{t.setAttribute('aria-selected',j===i);t.tabIndex=j===i?0:-1});
+ pp.innerHTML='<div><h3></h3><p class="who"></p><p class="one"></p></div><ul></ul>';
+ pp.querySelector('h3').textContent=n;pp.querySelector('.who').textContent=w;pp.querySelector('.one').textContent=o;
+ b.forEach(x=>{const l=document.createElement('li');l.innerHTML=ck;l.append(x);pp.querySelector('ul').append(l)});
+ pp.classList.remove('sw');void pp.offsetWidth;pp.classList.add('sw');
+}
+P.forEach((p,i)=>{const t=document.createElement('button');t.className='tab';t.role='tab';t.textContent=p[0];t.onclick=()=>show(i);
+ t.onkeydown=e=>{const k={ArrowRight:1,ArrowLeft:-1}[e.key];if(k){const j=(i+k+P.length)%P.length;show(j);tb.children[j].focus();tb.children[j].scrollIntoView({inline:'center',block:'nearest'})}};tb.append(t)});
+show(0);
+// nav
+const hd=$('hd'),st=$('st'),mn=$('mn'),bg=$('bg');
+addEventListener('scroll',()=>{hd.classList.toggle('s',scrollY>20);st.classList.toggle('v',scrollY>600)},{passive:true});
+bg.onclick=()=>{const o=mn.classList.toggle('o');bg.setAttribute('aria-expanded',o)};
+mn.addEventListener('click',e=>{if(e.target.tagName=='A'){mn.classList.remove('o');bg.setAttribute('aria-expanded',false)}});
+// cursor glow (fine pointers only)
+if(matchMedia('(hover:hover)').matches)addEventListener('pointermove',e=>{const g=$('glow').style;g.setProperty('--x',e.clientX+'px');g.setProperty('--y',e.clientY+'px')},{passive:true});
+// ===== core: local encrypted accounts (works with no backend and no API keys) =====
+const GOOGLE_CLIENT_ID='364131200529-b56j8scp3tm6jof1gb0mnmpso7fg7jhr.apps.googleusercontent.com'; // paste your Google client ID here later; the Google button stays hidden until then
+const enc=new TextEncoder(),dec=new TextDecoder(),LS=localStorage;
+const b64=u=>{let t='';for(const b of new Uint8Array(u))t+=String.fromCharCode(b);return btoa(t)},ub=t=>Uint8Array.from(atob(t),c=>c.charCodeAt(0));
+const jget=(k,d)=>{try{return JSON.parse(LS.getItem(k))??d}catch{return d}};
+async function dk(pw,salt){const m=await crypto.subtle.importKey('raw',enc.encode(pw),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:310000,hash:'SHA-256'},m,{name:'AES-GCM',length:256},false,['encrypt','decrypt'])}
+async function seal(k,o){const iv=crypto.getRandomValues(new Uint8Array(12));return{iv:b64(iv),d:b64(await crypto.subtle.encrypt({name:'AES-GCM',iv},k,enc.encode(JSON.stringify(o))))}}
+async function unseal(k,x){return JSON.parse(dec.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:ub(x.iv)},k,ub(x.d))))}
+const SW=window.SW={user:null,key:null,data:null,start:null,
+ async save(){LS.setItem('sw_v_'+SW.user.email,JSON.stringify(await seal(SW.key,SW.data)))},
+ logout(){SW.user=SW.key=SW.data=null;document.body.classList.remove('in');$('appRoot').innerHTML=''}};
+function begin(user,key,data){
+ SW.user=user;SW.key=key;SW.data=data;closeAuth();document.body.classList.add('in');scrollTo(0,0);
+ if(SW.start)SW.start($('appRoot'));
+ else{const r=$('appRoot');r.innerHTML='<h2 class="t"></h2><p class="sub"></p>';r.querySelector('h2').textContent='Welcome, '+(user.name||'there').split(' ')[0]+'.';r.querySelector('p').textContent='Your encrypted vault is ready ('+(data.profile||'no profile yet')+'). The dashboard arrives in the next build step.'}
+}
+async function signUp(name,email,pw){
+ const us=jget('sw_users',{});if(us[email])throw'An account with this email already exists. Try signing in.';
+ const salt=crypto.getRandomValues(new Uint8Array(16)),key=await dk(pw,salt);
+ us[email]={name,profile:'',salt:b64(salt),ver:await seal(key,{ok:1})};LS.setItem('sw_users',JSON.stringify(us));
+ const data={profile:'',name,created:Date.now()};SW.user={email,name};SW.key=key;SW.data=data;await SW.save();begin({email,name},key,data)}
+async function signIn(email,pw){
+ const u=jget('sw_users',{})[email];if(!u)throw'No account found with that email on this device.';
+ const key=await dk(pw,ub(u.salt));try{await unseal(key,u.ver)}catch{throw'Wrong password.'}
+ const v=jget('sw_v_'+email,null);begin({email,name:u.name},key,v?await unseal(key,v):{profile:u.profile||'',name:u.name})}
+async function googleIn(cred){
+ try{const p=JSON.parse(dec.decode(ub(cred.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))));const email=p.email.toLowerCase();
+ let ds=LS.getItem('sw_dk');if(!ds){ds=b64(crypto.getRandomValues(new Uint8Array(32)));LS.setItem('sw_dk',ds)}
+ const key=await dk(ds,enc.encode(email)),v=jget('sw_v_'+email,null);
+ begin({email,name:p.name,google:true},key,v?await unseal(key,v):{profile:'',name:p.name,created:Date.now()})}
+ catch(e){showErr('Google sign-in failed. Please try again.')}}
+// ===== auth overlay =====
+let mode='in';const au=$('auth'),af=$('authform'),ER=$('aer');
+function showErr(t){ER.textContent=t||'';ER.classList.toggle('s',!!t)}
+function setMode(m){mode=m;const up=m==='up';
+ $('ti').setAttribute('aria-selected',!up);$('tu').setAttribute('aria-selected',up);
+ $('an').hidden=!up;$('ap').autocomplete=up?'new-password':'current-password';
+ $('ah').textContent=up?'Create your account':'Welcome back';$('as').textContent=up?'Free to start. You will pick your profile on the next screen.':'Sign in to open your dashboard.';
+ $('asb').textContent=up?'Create account':'Sign in';showErr()}
+function openAuth(m){mn.classList.remove('o');setMode(m);au.classList.add('o');document.body.style.overflow='hidden';setTimeout(()=>$(m==='up'?'an':'ae').focus(),50)}
+function closeAuth(){au.classList.remove('o');document.body.style.overflow=''}
+document.querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>openAuth(/start|copilot|choose/i.test(b.textContent)?'up':'in')));
+$('ti').onclick=()=>setMode('in');$('tu').onclick=()=>setMode('up');$('ax').onclick=closeAuth;
+au.addEventListener('click',e=>{if(e.target===au)closeAuth()});
+addEventListener('keydown',e=>{if(e.key==='Escape'&&au.classList.contains('o'))closeAuth()});
+$('lo').onclick=()=>SW.logout();
+af.addEventListener('submit',async e=>{
+ e.preventDefault();showErr();
+ const email=$('ae').value.trim().toLowerCase(),pw=$('ap').value,name=$('an').value.trim();
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))return showErr('Enter a valid email address.');
+ if(pw.length<8)return showErr('Use at least 8 characters for your password.');
+ if(mode==='up'&&!name)return showErr('Please enter your name.');
+ const b=$('asb'),t=b.textContent;b.disabled=true;b.textContent='Securing…';
+ try{mode==='up'?await signUp(name,email,pw):await signIn(email,pw)}catch(x){showErr(typeof x==='string'?x:'Something went wrong. Please try again.')}
+ b.disabled=false;b.textContent=t});
+if(GOOGLE_CLIENT_ID){const g=document.createElement('script');g.src='https://accounts.google.com/gsi/client';g.async=true;
+ g.onload=()=>{google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:r=>googleIn(r.credential),use_fedcm_for_button:true});google.accounts.id.renderButton($('gb'),{theme:'filled_black',size:'large',text:'continue_with',width:340});$('gw').hidden=false};document.head.append(g)}
+</script>
+<script src="profiles.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
