@@ -12,7 +12,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&display=swap" rel="stylesheet">
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" defer></script>
 <style>
 :root{--bg:#030712;--panel:#0b1220;--line:#1e293b;--tx:#e2e8f0;--mu:#94a3b8;--em:#34d399;--cy:#22d3ee;--am:#fbbf24;--rd:#f87171;--r:20px;--pad:clamp(20px,5vw,40px)}
 *{box-sizing:border-box;margin:0}
@@ -89,8 +88,6 @@ input[type=range]{width:100%;height:36px;accent-color:#34d399;background:none;cu
 /* auth overlay + app shell */
 #auth{position:fixed;inset:0;z-index:100;display:none;overflow-y:auto;background:rgba(3,7,18,.92);backdrop-filter:blur(14px);padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom))}
 #auth.o{display:grid;place-items:center}
-#gate{position:fixed;inset:0;z-index:101;display:none;overflow-y:auto;background:rgba(3,7,18,.92);backdrop-filter:blur(14px);padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom))}
-#gate.o{display:grid;place-items:center}
 .ac{position:relative;width:min(440px,100%);padding:clamp(22px,4vw,32px);border-radius:26px;background:#0f172a;border:1px solid var(--line);box-shadow:0 30px 90px #000;margin:auto}
 .seg{display:grid;grid-template-columns:1fr 1fr;padding:4px;border-radius:14px;background:var(--bg);border:1px solid var(--line);margin:0 0 22px}
 .seg button{padding:10px;border-radius:10px;font-weight:600;color:var(--mu)}.seg [aria-selected=true]{background:#1e293b;color:#fff}
@@ -342,16 +339,6 @@ footer{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 
 <div class="sticky" id="st"><button class="btn pri" data-open>Open the app <svg class="i"><use href="#up"/></svg></button></div>
 
-<section id="gate" role="dialog" aria-modal="true" aria-labelledby="gh">
-<div class="ac" style="max-width:400px;text-align:center">
-<button class="xb" id="gx" aria-label="Close"><svg class="i"><use href="#pl" style="transform:rotate(45deg);transform-origin:center"/></svg></button>
-<h2 id="gh" style="font-size:22px">One quick check</h2>
-<p class="sub" style="margin:8px 0 20px;font-size:14px">Confirming you are a real person before we open your account.</p>
-<div id="turnstile-widget" style="display:flex;justify-content:center;min-height:65px"></div>
-<div class="er" id="ger" role="alert" style="margin-top:14px"></div>
-</div>
-</section>
-
 <section id="auth" role="dialog" aria-modal="true" aria-labelledby="ah"><div class="ac">
 <button class="xb" id="ax" aria-label="Close"><svg class="i"><use href="#pl" style="transform:rotate(45deg);transform-origin:center"/></svg></button>
 <div class="seg" role="tablist"><button role="tab" id="ti" aria-selected="true">Sign in</button><button role="tab" id="tu" aria-selected="false">Create account</button></div>
@@ -459,46 +446,7 @@ function setMode(m){mode=m;const up=m==='up';
  $('asb').textContent=up?'Create account':'Sign in';showErr()}
 function openAuth(m){mn.classList.remove('o');setMode(m);au.classList.add('o');document.body.style.overflow='hidden';setTimeout(()=>$(m==='up'?'an':'ae').focus(),50)}
 function closeAuth(){au.classList.remove('o');document.body.style.overflow=''}
-// ===== Turnstile gate =====
-// Runs once per session before the auth screen. Real validation happens in the Worker (siteverify).
-const GATE_ENDPOINT='https://ai-proxy-worker.spendwise-main.workers.dev/verify-turnstile';
-const GATE_ACTION='open_app';
-const GATE_SITEKEY='0x4AAAAAAFW9MKmGMmmJEHWF';
-let gateWidget=null,gatePassed=sessionStorage.getItem('sw_gate')==='1',gatePending='in';
-const gateEl=$('gate'),gateErr=$('ger');
-function showGateErr(t){gateErr.textContent=t||'';gateErr.classList.toggle('s',!!t)}
-function openGate(m){
- gatePending=m;showGateErr();gateEl.classList.add('o');document.body.style.overflow='hidden';
- if(gatePassed){closeGate();openAuth(m);return}
- const render=()=>{
-  if(gateWidget!==null){window.turnstile.reset(gateWidget);return}
-  gateWidget=window.turnstile.render('#turnstile-widget',{
-   sitekey:GATE_SITEKEY,theme:'dark',action:GATE_ACTION,
-   callback:async token=>{
-    showGateErr();
-    try{
-     const r=await fetch(GATE_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,action:GATE_ACTION})});
-     const j=await r.json();
-     if(!j.ok)throw new Error(j.errors&&j.errors.length?'Verification failed ('+j.errors[0]+'). Please try again.':'Verification failed. Please try again.');
-     gatePassed=true;sessionStorage.setItem('sw_gate','1');
-     closeGate();openAuth(gatePending);
-    }catch(e){
-     showGateErr(e.message||'Could not verify. Please try again.');
-     if(gateWidget!==null)window.turnstile.reset(gateWidget);
-    }
-   },
-   'error-callback':()=>showGateErr('The check could not load. Please refresh and try again.'),
-   'expired-callback':()=>{if(gateWidget!==null)window.turnstile.reset(gateWidget)}
-  });
- };
- if(window.turnstile&&window.turnstile.ready)window.turnstile.ready(render);
- else{/* script still loading; retry briefly */let n=0;const t=setInterval(()=>{if(window.turnstile&&window.turnstile.ready){clearInterval(t);window.turnstile.ready(render)}else if(++n>50){clearInterval(t);showGateErr('The check could not load. Please refresh and try again.')}},100)}
-}
-function closeGate(){gateEl.classList.remove('o');document.body.style.overflow=''}
-$('gx').onclick=closeGate;
-gateEl.addEventListener('click',e=>{if(e.target===gateEl)closeGate()});
-addEventListener('keydown',e=>{if(e.key==='Escape'&&gateEl.classList.contains('o'))closeGate()});
-document.querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>openGate(/start|copilot|choose/i.test(b.textContent)?'up':'in')));
+document.querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>openAuth(/start|copilot|choose/i.test(b.textContent)?'up':'in')));
 $('ti').onclick=()=>setMode('in');$('tu').onclick=()=>setMode('up');$('ax').onclick=closeAuth;
 au.addEventListener('click',e=>{if(e.target===au)closeAuth()});
 addEventListener('keydown',e=>{if(e.key==='Escape'&&au.classList.contains('o'))closeAuth()});
