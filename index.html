@@ -191,6 +191,23 @@ footer{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 @media(max-width:480px){.row .btn{width:100%}.verd{padding:14px}details p{padding-right:0}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 @media(hover:none){.glow{display:none}}
+#flow{position:fixed;inset:0;z-index:110;display:none;overflow-y:auto;background:var(--bg);padding:max(18px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom))}
+#flow.o{display:block}
+.fw{width:min(920px,100%);margin:0 auto}.fw .logo{margin:6px 0 26px}.fw h1{font-size:clamp(26px,5vw,38px);font-weight:800;letter-spacing:-.03em;text-align:center}.fw .fs{color:var(--mu);text-align:center;margin:8px 0 28px}
+.fw .price{max-width:760px;margin:0 auto}.fw .plan{cursor:pointer}.fw .plan .btn{margin-top:auto}
+.fw .skip{display:block;margin:22px auto 0;color:var(--mu);font-weight:600;text-decoration:underline;text-underline-offset:4px;padding:8px}.fw .skip:hover{color:#fff}
+.pay{display:grid;grid-template-columns:1fr 1.25fr;gap:20px;align-items:start}
+.pc{padding:clamp(20px,3.5vw,30px);border-radius:24px;background:var(--panel);border:1px solid var(--line)}
+.pc h2{font-size:20px;font-weight:800;margin-bottom:14px}.pc .ln{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}.pc .ln.t{border:0;font-weight:800;font-size:18px}.pc .ln span{color:var(--mu)}.pc .ln.t span{color:var(--tx)}
+.pc ul{list-style:none;padding:0;margin:16px 0 0;display:grid;gap:10px;font-size:14px;color:var(--mu)}.pc li{display:flex;gap:10px}.pc li svg{color:var(--em);margin-top:4px;flex:none}
+.pm{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:4px;border-radius:14px;background:var(--bg);border:1px solid var(--line);margin-bottom:18px}.pm button{padding:10px 4px;border-radius:10px;font-weight:600;font-size:14px;color:var(--mu)}.pm [aria-selected=true]{background:#1e293b;color:#fff}
+.pf input{width:100%;padding:14px;border-radius:12px;background:var(--bg);border:1px solid var(--line);color:#fff;font:inherit;margin-bottom:14px}.pf input:focus{outline:0;border-color:var(--em)}
+.pf .r2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.bk{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}.bk button{padding:14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-weight:600;text-align:left}.bk button[aria-pressed=true]{border-color:var(--em);color:var(--em)}
+.pf .er{margin:0 0 14px}.sec{font-size:12.5px;color:#64748b;text-align:center;margin-top:14px;display:flex;gap:8px;justify-content:center;align-items:flex-start}
+.spin{width:18px;height:18px;border-radius:50%;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;animation:sp .7s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.pn{text-align:center;padding:10px 0}.pn .big{font-size:42px}.pn h2{margin:10px 0 8px}.pn p{color:var(--mu);margin-bottom:20px}
+@media(max-width:760px){.pay{grid-template-columns:1fr}.pay .pc:first-child{order:2}}
 </style>
 </head>
 <body>
@@ -299,7 +316,7 @@ footer{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 
 <section id="advisor" style="padding-top:40px">
 <div class="wrap">
-<div class="sh"><h2 class="t">Ask how to plan your future.</h2><p class="sub">A calm money coach for tight months, long-term goals, and the next right step. Same NVIDIA model SpendWise uses for allocation math. General guidance, not regulated advice.</p></div>
+<div class="sh"><h2 class="t">Ask how to plan your future.</h2><p class="sub">A calm money coach for tight months, long-term goals, and the next right step. Same AI model SpendWise uses for allocation math. General guidance, not regulated advice.</p></div>
 <div class="chatbox" id="lchat">
 <div class="chatlog" id="lclog" aria-live="polite"></div>
 <div class="chatqs" id="lcqs"></div>
@@ -416,8 +433,69 @@ async function unseal(k,x){return JSON.parse(dec.decode(await crypto.subtle.decr
 const SW=window.SW={user:null,key:null,data:null,start:null,
  async save(){LS.setItem('sw_v_'+SW.user.email,JSON.stringify(await seal(SW.key,SW.data)))},
  logout(){SW.user=SW.key=SW.data=null;document.body.classList.remove('in');$('appRoot').innerHTML=''}};
+/* ===== plan choice + demo checkout (UI only, nothing is charged, stored or sent) ===== */
+let ENTRY={src:'open'};
+const FL=()=>{let f=$('flow');if(!f){f=document.createElement('section');f.id='flow';f.setAttribute('role','dialog');f.setAttribute('aria-modal','true');document.body.append(f)}return f};
+const tick='<svg class="i"><use href="#ok"/></svg>';
+function showFlow(h,label){const f=FL();f.setAttribute('aria-label',label);f.innerHTML='<div class="fw"><a class="logo" href="#" onclick="return false"><span class="mark"><svg class="i" style="stroke-width:2.6"><use href="#up"/></svg></span>SpendWise</a>'+h+'</div>';f.classList.add('o');document.body.style.overflow='hidden';f.scrollTop=0;const h1=f.querySelector('h1');if(h1){h1.tabIndex=-1;h1.focus()}return f}
+function hideFlow(){const f=$('flow');if(f)f.classList.remove('o');document.body.style.overflow=''}
+function gate(go){
+ const d=SW.data,e=ENTRY;ENTRY={src:'open'};
+ const done=async t=>{d.tier=t;try{await SW.save()}catch{}hideFlow();go()};
+ if(!d.tier&&d.profile)d.tier='free';
+ if(e.src==='pricing'&&e.tier==='free'&&!d.tier)return done('free');
+ if(e.src==='pricing'&&e.tier==='paid'&&d.tier!=='paid')return payPage(done);
+ if(!d.tier)return tierPage(done);
+ go()}
+function tierPage(done){
+ const f=showFlow(`<h1>Choose your plan</h1><p class="fs">Start free and upgrade whenever you like.</p>
+ <div class="price"><div class="plan"><h3>Core</h3><div class="pr">₹0</div><p>Everything you need to start.</p>
+ <ul><li>${tick}Real-time safe-to-spend balance</li><li>${tick}Up to 2 goal vaults</li><li>${tick}Monthly summaries</li><li>${tick}Data stays on your device</li></ul>
+ <button class="btn gho" id="tf">Continue with Core</button></div>
+ <div class="plan hot"><span class="tag">Most popular</span><h3>Copilot</h3><div class="pr">₹2,000<small> / year</small></div><p>About ₹167 a month.</p>
+ <ul><li>${tick}Automatic UPI and bank sync</li><li>${tick}Unlimited goal vaults and emergency cushion</li><li>${tick}Predictive AI verdicts</li><li>${tick}Deep spending insights</li></ul>
+ <button class="btn pri" id="tp">Choose Copilot</button></div></div>
+ <p class="fine" style="text-align:center;margin-top:18px;color:#64748b;font-size:13px">No card needed for Core. No trial clock.</p>`,'Choose your plan');
+ f.querySelector('#tf').onclick=()=>done('free');f.querySelector('#tp').onclick=()=>payPage(done,true)}
+function payPage(done,fromTiers){
+ let meth='upi',bank='',busy=false;
+ const f=showFlow('','Payment');
+ const body=()=>{const m={upi:`<label for="pu">UPI ID</label><input id="pu" class="pi" placeholder="name@bank" autocomplete="off" inputmode="email" spellcheck="false">`,
+  card:`<label for="pn">Card number</label><input id="pn" class="pi" placeholder="1234 5678 9012 3456" autocomplete="off" inputmode="numeric" maxlength="19"><div class="r2"><div><label for="pe">Expiry</label><input id="pe" class="pi" placeholder="MM / YY" autocomplete="off" inputmode="numeric" maxlength="7"></div><div><label for="pv2">CVV</label><input id="pv2" class="pi" type="password" placeholder="•••" autocomplete="off" inputmode="numeric" maxlength="4"></div></div><label for="pa">Name on card</label><input id="pa" class="pi" placeholder="As printed on the card" autocomplete="off">`,
+  net:`<label>Choose your bank</label><div class="bk">${['State Bank of India','HDFC Bank','ICICI Bank','Axis Bank','Kotak Mahindra Bank','Other banks'].map(b=>`<button type="button" aria-pressed="${bank===b}" data-b="${b}">${b}</button>`).join('')}</div>`}[meth];
+  return`<h1>Complete your upgrade</h1><p class="fs">Copilot, billed yearly. Cancel any time.</p>
+  <div class="pay"><div class="pc"><h2>Order summary</h2><div class="ln"><span>Copilot, 1 year</span><b>₹2,000</b></div><div class="ln"><span>About per month</span><b>₹167</b></div><div class="ln t"><span>Total today</span><b>₹2,000</b></div>
+  <ul><li>${tick}Automatic UPI and bank sync</li><li>${tick}Unlimited goal vaults</li><li>${tick}Predictive AI verdicts</li></ul></div>
+  <div class="pc pf" id="pb"><h2>Payment method</h2><div class="pm" role="tablist">${[['upi','UPI'],['card','Card'],['net','Netbanking']].map(x=>`<button type="button" role="tab" aria-selected="${meth===x[0]}" data-m="${x[0]}">${x[1]}</button>`).join('')}</div>
+  <div>${m}</div><div class="er" id="pe2" role="alert"></div>
+  <button class="btn pri" id="pay" style="width:100%" type="button">Pay ₹2,000</button>
+  <button class="skip" id="fr" type="button" style="width:100%;margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:14px;color:#fff;font-weight:700;text-decoration:none">Continue with free for now</button>
+  <p class="sec"><svg class="i" style="flex:none;margin-top:2px"><use href="#ok"/></svg><span>Demo checkout. Nothing is charged, and what you type here is never stored or sent.</span></p></div></div>`};
+ const draw=()=>{f.querySelector('.fw').innerHTML=f.querySelector('.fw .logo').outerHTML+body();bind()};
+ const err=t=>{const e=f.querySelector('#pe2');e.textContent=t;e.classList.toggle('s',!!t)};
+ const luhn=s=>{let n=0,alt=false;for(let i=s.length-1;i>=0;i--){let d=+s[i];if(alt){d*=2;if(d>9)d-=9}n+=d;alt=!alt}return n%10===0};
+ const bind=()=>{
+  f.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{if(busy)return;meth=b.dataset.m;draw()});
+  f.querySelectorAll('[data-b]').forEach(b=>b.onclick=()=>{bank=b.dataset.b;draw()});
+  const pn=f.querySelector('#pn');if(pn)pn.oninput=()=>{pn.value=pn.value.replace(/\D/g,'').slice(0,16).replace(/(.{4})/g,'$1 ').trim()};
+  const pe=f.querySelector('#pe');if(pe)pe.oninput=()=>{let v=pe.value.replace(/\D/g,'').slice(0,4);pe.value=v.length>2?v.slice(0,2)+' / '+v.slice(2):v};
+  f.querySelector('#fr').onclick=()=>{if(!busy)done('free')};
+  f.querySelector('#pay').onclick=()=>{
+   if(busy)return;err('');const q=s=>(f.querySelector(s)||{}).value||'';
+   if(meth==='upi'&&!/^[\w.\-]{2,}@[a-z]{2,}$/i.test(q('#pu').trim()))return err('Enter a valid UPI ID, like name@bank.');
+   if(meth==='card'){const n=q('#pn').replace(/\s/g,'');if(n.length<16||!luhn(n))return err('Check the card number.');
+    const ex=q('#pe').replace(/\D/g,''),mo=+ex.slice(0,2);if(ex.length<4||mo<1||mo>12)return err('Enter the expiry as MM / YY.');
+    if(q('#pv2').length<3)return err('Enter the 3 or 4 digit CVV.');if(q('#pa').trim().length<2)return err('Enter the name on the card.')}
+   if(meth==='net'&&!bank)return err('Choose your bank.');
+   busy=true;const b=f.querySelector('#pay');b.disabled=true;b.innerHTML='<span class="spin"></span> Processing…';
+   setTimeout(()=>{f.querySelector('#pb').innerHTML=`<div class="pn"><div class="big">🕒</div><h2>Payments open soon</h2><p>Copilot is not switched on yet, so nothing was charged. You are on Core for now, and we have noted your interest.</p><button class="btn pri" id="go" style="width:100%">Continue with free</button></div>`;
+    f.querySelector('#go').onclick=()=>{SW.data.interest='copilot';done('free')};f.querySelector('#go').focus()},1800)}};
+ draw()}
+SW.upgrade=()=>payPage(async t=>{if(SW.data.tier!=='paid')SW.data.tier=t;try{await SW.save()}catch{}hideFlow()},false);
 function begin(user,key,data){
- SW.user=user;SW.key=key;SW.data=data;closeAuth();document.body.classList.add('in');scrollTo(0,0);
+ SW.user=user;SW.key=key;SW.data=data;closeAuth();
+ gate(()=>{document.body.classList.add('in');scrollTo(0,0);beginApp(user,data)})}
+function beginApp(user,data){
  if(SW.start)SW.start($('appRoot'));
  else{const r=$('appRoot');r.innerHTML='<h2 class="t"></h2><p class="sub"></p>';r.querySelector('h2').textContent='Welcome, '+(user.name||'there').split(' ')[0]+'.';r.querySelector('p').textContent='Your encrypted vault is ready ('+(data.profile||'no profile yet')+'). The dashboard arrives in the next build step.'}
 }
@@ -446,7 +524,7 @@ function setMode(m){mode=m;const up=m==='up';
  $('asb').textContent=up?'Create account':'Sign in';showErr()}
 function openAuth(m){mn.classList.remove('o');setMode(m);au.classList.add('o');document.body.style.overflow='hidden';setTimeout(()=>$(m==='up'?'an':'ae').focus(),50)}
 function closeAuth(){au.classList.remove('o');document.body.style.overflow=''}
-document.querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>openAuth(/start|copilot|choose/i.test(b.textContent)?'up':'in')));
+document.querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>{const t=b.textContent;ENTRY=b.closest('#pricing')?{src:'pricing',tier:/copilot/i.test(t)?'paid':'free'}:{src:'open'};openAuth(/start|copilot|choose/i.test(t)?'up':'in')}));
 $('ti').onclick=()=>setMode('in');$('tu').onclick=()=>setMode('up');$('ax').onclick=closeAuth;
 au.addEventListener('click',e=>{if(e.target===au)closeAuth()});
 addEventListener('keydown',e=>{if(e.key==='Escape'&&au.classList.contains('o'))closeAuth()});
