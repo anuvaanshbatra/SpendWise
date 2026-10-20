@@ -1,9 +1,15 @@
 (()=>{
-/* ===== AI CONFIG — leave empty until you are ready (the app works without it) =====
-   ENDPOINT   : RECOMMENDED. URL of your own proxy (see ai-proxy-worker.js). Your key stays on the server.
-   MODEL      : exact OpenRouter model id, e.g. 'xiaomi/mimo-v2.6-flash'. Optional if the proxy sets the model.
-   DIRECT_KEY : TESTING ONLY. A key placed here is visible to everyone who opens the site. Never publish it. */
+/* ===== AI CONFIG ===== */
 const AI_CONFIG={ENDPOINT:'https://ai-proxy-worker.spendwise-main.workers.dev',MODEL:'nvidia/nemotron-3-ultra-550b-a55b:free',DIRECT_KEY:''};
+/* Free-tier AI limits (display and soft enforcement). Real per-user enforcement belongs in the worker once the database is live. */
+/* reply = max tokens per answer. Models that think first spend part of it on thinking, so keep generous headroom. */
+const AI_LIMITS={free:{chat:10,plan:3,reply:1200,hist:6,chars:500},paid:{chat:60,plan:20,reply:1600,hist:12,chars:800},learner:{chat:15,reply:900},landing:3};
+const aiPaid=()=>!!(SW.data&&SW.data.tier==='paid');
+function aiLim(){const l=Object.assign({},aiPaid()?AI_LIMITS.paid:AI_LIMITS.free);if(isL()){l.reply=Math.min(l.reply,AI_LIMITS.learner.reply);if(!aiPaid())l.chat=AI_LIMITS.learner.chat}return l}
+const dayKey=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+function aiUse(){if(!st.ai||st.ai.d!==dayKey())st.ai={d:dayKey(),c:0,p:0};return st.ai}
+const aiLeft=k=>Math.max(0,aiLim()[k==='c'?'chat':'plan']-aiUse()[k]);
+function aiLeftHTML(){const n=aiLeft('c'),L=aiLim().chat;return`${n} of ${L} AI messages left today.${n===0?' They reset tomorrow.':''}${aiPaid()?'':` <button type="button" class="lk" data-a="upgrade">${n===0?'Upgrade for more':'Get more with Copilot'}</button>`}`}
 const aiReady=()=>!!AI_CONFIG.ENDPOINT||!!(AI_CONFIG.DIRECT_KEY&&AI_CONFIG.MODEL);
 
 const R=n=>(n<0?'-':'')+'₹'+Math.abs(Math.round(n)).toLocaleString('en-IN');
@@ -138,6 +144,9 @@ const css=document.createElement('style');css.textContent=`
 .cm details{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:0 16px;margin-bottom:8px}.cm summary{padding:14px 0;font-size:16px;gap:10px}.cm summary>span:first-child{display:flex;align-items:center;gap:10px;flex:1;min-width:0}.cm details p{padding:0 0 10px;font-size:14px}.cm details p b{color:var(--tx)}
 .hz{padding:16px 18px;border-radius:18px;background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.3);margin-top:4px}.hz ul{margin:8px 0 8px 18px;font-size:15px}.hz p{color:var(--mu);font-size:14px}
 .fl .chip{padding:6px 14px}
+button.sc{display:flex;align-items:center;gap:14px;width:100%;margin:12px 0 0;padding:12px 16px;border:1px solid var(--line);border-radius:18px;background:var(--panel);color:inherit;font:inherit;text-align:left;cursor:pointer}button.sc>div{flex:1;min-width:0}button.sc b{display:block;font-size:16px}button.sc small{color:var(--mu);font-size:13px}button.sc>span{font-size:22px;color:var(--mu)}button.sc.off{border-style:dashed}
+.gg{width:120px;flex:none}.gg.big{width:100%;max-width:280px;display:block;margin:0 auto}.gg .gn{font-size:40px;font-weight:800;fill:#f1f5f9}.gg .gl{font-size:11px;font-weight:600;fill:#94a3b8}.scd{text-align:center}.scd p{margin-top:8px}
+.lk{background:none;border:0;padding:0;color:var(--em);font:inherit;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer;margin-left:4px}
 @media(max-width:380px){.tl{gap:6px}.tl button{font-size:11.5px}.nv button{font-size:10.5px;padding:10px 2px 12px}}`;
 document.head.append(css);
 
@@ -166,7 +175,59 @@ function pfSafe(){const o={};(pd().q||[]).forEach(q=>{if(q.t==='text')return;con
 const months=d=>{if(!d)return 1;const[y,m]=d.split('-').map(Number),n=new Date();return Math.max(1,(y-n.getFullYear())*12+m-(n.getMonth()+1))};
 const thisCycle=()=>st.cycles.find(c=>c.k===mk());
 const need=g=>g.s>=g.t?0:Math.round((g.t-g.s)/Math.max(1,months(g.d)-(thisCycle()?1:0)));
-const save=async()=>{SW.data.setup=st;await SW.save()};
+const save=async()=>{
+ SW.data.setup=st;
+ await SW.save();
+ 
+ if(SW.user&&SW.user.email&&SW.key){
+   try{
+     // 1. Encrypt the full raw data (spends, history, everything)
+     const sealed=await SW.seal(SW.key,SW.data);
+     const ciphertext=JSON.stringify({iv:sealed.iv,d:sealed.d});
+     
+     // 2. Extract plain-text aggregates for the admin hub
+     const p = plan(); // your existing plan calculator
+     const m = money(); // your existing money calculator
+     
+     // Extract sub-category based on their specific profile questions
+     let subCat = '';
+     if(st.pf) {
+       if(isT()) subCat = st.pf.src === 'Side hustle' ? 'side_hustle' : 'allowance';
+       if(isW()) subCat = st.pf.emp || 'unknown'; // Salaried, Self-employed, etc.
+       if(prof()==='Young adult') subCat = st.pf.status || 'student';
+     }
+
+     // Format their commitments and goals into clean JSON
+     const commitments = JSON.stringify(st.fixed.map(f => ({ name: f.n, amount: Number(f.a) })));
+     const goals = JSON.stringify(st.goals.map(g => ({ name: g.n, target: Number(g.t), saved: Number(g.s) })));
+     const buckets = JSON.stringify({ emergency: p.e, invest: p.i, safe: p.safe });
+
+     // Get the last AI message they received as a summary
+     const lastAiMsg = st.chat && st.chat.length > 0 ? st.chat[st.chat.length - 1].content.slice(0, 150) + '...' : '';
+
+     // 3. Send to Cloudflare
+     fetch(AI_CONFIG.ENDPOINT.replace(/\/$/,'')+'/profile-sync',{
+       method:'POST',
+       headers:{'Content-Type':'application/json'},
+       body:JSON.stringify({
+         email: SW.user.email,
+         profile: SW.data.profile || 'None',
+         sub_category: subCat,
+         monthly_income: st.income || 0,
+         existing_savings: st.savings || 0,
+         total_debt: st.debt || 0,
+         dependents: st.dependents || 0,
+         buckets: buckets,
+         commitments: commitments,
+         goals: goals,
+         ai_chat_summary: lastAiMsg,
+         ciphertext: ciphertext
+       })
+     }).catch(e=>console.warn('DB sync failed',e));
+     
+   }catch(e){console.warn('Sync encrypt failed',e)}
+ }
+};
 const dlabel=t=>{const d=new Date(t),n=new Date(),a=new Date(d.getFullYear(),d.getMonth(),d.getDate()),b=new Date(n.getFullYear(),n.getMonth(),n.getDate()),df=Math.round((b-a)/864e5);return df===0?'Today':df===1?'Yesterday':d.toLocaleDateString('en-IN',{day:'numeric',month:'short'})};
 function toast(t,bad){let x=$('tst');if(!x){x=document.createElement('div');x.id='tst';x.setAttribute('role','status');x.setAttribute('aria-live','polite');document.body.append(x)}
  x.textContent=t;x.className=bad?'bad':'';clearTimeout(toast.t);toast.t=setTimeout(()=>x.remove(),3200)}
@@ -186,6 +247,76 @@ function money(){
  const base=cy?cy.s:(p.ready?p.safe:null),pool=base==null?null:prior+base;
  return{p,cy,spentM,pool,safeNow:pool==null?null:pool-spentM,
   emerg:st.savings+sum(st.cycles,c=>c.e),invest:sum(st.cycles,c=>c.i)};
+}
+
+/* ===== Financial Health Score (0 to 1000) =====
+   Calculated only from the user's own entries. Checks without data are left out and the rest are scaled to 1000.
+   Benchmarks (6 months of costs, 20% saved) are common rules of thumb, shown as such, never applied as allocations. */
+function healthScore(){
+ if(!st||!st.done||!(st.income>0))return null;
+ const m=money(),p=m.p;if(!p.ready)return null;
+ const L=isL(),T=isT(),inc=st.income,ins=(st.pf||{}).ins,j=st.learn.jars;
+ if(L){const S=SL(),xp=st.learn.xp,lv=Math.floor(xp/100),top=S.levels.length,mx=top*100,nm=S.levels[Math.min(lv,top-1)];
+  const ways=[['Fill your jars each month','+20 XP',!!m.cy],['Log what you spend, once a day','+5 XP',st.learn.logged===new Date().toDateString()],['Play Want or Need','+10 XP per right answer',false],['Finish your Quest setup','+50 XP',!!st.learn.setupXp]];
+  return{L:true,total:Math.round(Math.min(1,xp/mx)*1000),disp:'Lv '+Math.min(lv+1,top),band:nm,xp,lv:lv+1,top,toNext:lv>=top?0:100-xp%100,nextName:S.levels[Math.min(lv+1,top-1)],ways,col:'var(--em)',C:[],best:null}}
+ const C=[],add=(id,n,ic,max,f,why,tip)=>{if(f!=null)C.push({id,n,ic,max,f:Math.max(0,Math.min(1,f)),why,tip})};
+ /* cushion */
+ const useFx=!L&&p.fx>0,basis=useFx?p.fx:inc,tm=useFx?(st.rules.em>0?st.rules.em:6):3,mo=m.emerg/basis,gap=Math.max(0,tm*basis-m.emerg);
+ add('cush',L?'Save jar':T?'Safety money':'Emergency cushion',L?'🫙':'🛟',250,mo/tm,
+  `You have ${R(m.emerg)} saved. That covers about ${mo.toFixed(1)} month${mo.toFixed(1)==='1.0'?'':'s'} of ${useFx?'your fixed costs':'your income'}. The goal here is ${tm} month${tm>1?'s':''}${useFx&&!(st.rules.em>0)?' (a common rule of thumb)':st.rules.em>0?' (your own target)':''}.`,
+  gap<=0?'You have reached this goal. Keep it safe and separate from spending money.':`About ${R(gap)} more reaches ${tm} months.${p.e>0?` Your plan puts away ${R(p.e)} a month, so that is about ${Math.ceil(gap/p.e)} month${Math.ceil(gap/p.e)>1?'s':''}.`:' Set a saving % in Plan to start.'}`);
+ /* debt */
+ if(!L&&!T){const d=st.debt||0,ratio=d/(inc*12);
+  add('debt','Debt load','💳',150,1-Math.min(1,ratio/0.5),d>0?`You owe ${R(d)}, which is about ${Math.round(ratio*100)}% of a year's income. Less debt means more freedom each month.`:'You listed no debts. That keeps this part at full marks.',
+   d>0?'Pay down the most expensive debt first (usually credit cards or small loans). Every rupee of interest you avoid is guaranteed.':'Keep it that way. Borrow only for things you can clearly afford to repay.')}
+ /* saving rate */
+ const rate=L?(j.v+j.d)*10:(+st.rules.e||0)+(+st.rules.i||0),tr=L?30:T?10:20;
+ add('save',L?'Saving habit':'Saving rate','🌱',200,rate/tr,
+  `Your plan sets aside ${rate}% of your ${L?'pocket money':'income'}${L?' in the Save and Dream jars':''}. A common rule of thumb is about ${tr}%.`,
+  rate>=tr?'You are at or above the benchmark. Keep it steady rather than chasing a higher number.':`Moving up by ${Math.min(5,tr-rate)} point${Math.min(5,tr-rate)>1?'s':''} would help. Try it only if your safe-to-spend still covers your needs.`);
+ /* budget */
+ if(m.cy&&m.pool>0){const over=m.safeNow<0;
+  add('bud',L?'Spend jar':'Staying in budget','🧾',150,over?1+2*m.safeNow/m.pool:1,
+   over?`You have spent ${R(m.spentM)} against ${R(m.pool)} for ${mname()}. That is ${R(-m.safeNow)} over.`:`You have spent ${R(m.spentM)} of ${R(m.pool)} so far. ${R(m.safeNow)} is left.`,
+   over?'Pause wants for the rest of the month, or move a goal date so next month is lighter.':'You are inside your safe-to-spend. Logging every spend keeps this accurate.')}
+ /* goals */
+ if(st.goals.length){const prog=sum(st.goals,g=>g.t>0?Math.min(1,g.s/g.t):0)/st.goals.length,fit=p.safe>=0?1:0.2;
+  add('goal',L?'Dream':'Goals','🎯',100,0.6*fit+0.4*prog,
+   `${st.goals.length} goal${st.goals.length>1?'s':''} need${st.goals.length>1?'':'s'} ${R(p.rq)} a month. ${p.safe>=0?'That fits inside your plan.':'That does not fit your plan yet.'} Average progress is ${Math.round(prog*100)}%.`,
+   p.safe>=0?'Contribute each month and progress will follow.':'Lower a percentage or move a goal date until your plan fits.')}
+ /* cover */
+ if(!L&&!T&&(ins==='Yes'||ins==='No'))add('cov','Health cover','🏥',100,ins==='Yes'?1:0,
+  ins==='Yes'?'You said you have health insurance.':'You said you do not have health insurance. One hospital bill can wipe out savings.',
+  ins==='Yes'?'Check the cover amount still fits your city and family size.':'Look at cover options with a licensed adviser or insurer. Compare, then decide.');
+ /* habit */
+ const recent=st.spends.some(x=>Date.now()-new Date(x.t)<14*864e5);
+ add('hab','Money habit','🔥',50,(m.cy?0.6:0)+(recent?0.4:0),
+  `${m.cy?'You have allocated '+mname()+'.':'You have not allocated '+mname()+' yet.'} ${recent?'You logged a spend in the last two weeks.':'No spends logged in the last two weeks.'}`,
+  !m.cy?'Allocate this month so your plan starts working.':!recent?'Log your next spend. It takes seconds.':'Nice routine. Keep going.');
+ const mx=sum(C,c=>c.max),total=Math.round(sum(C,c=>c.f*c.max)/mx*1000);
+ C.forEach(c=>{c.pts=Math.round(c.f*c.max/mx*1000);c.cap=Math.round(c.max/mx*1000);c.lost=c.cap-c.pts});
+ const bands=L?[[800,'Money Hero'],[650,'Super Saver'],[500,'Rising Star'],[350,'Getting Going'],[0,'Just Starting']]:[[800,'Excellent'],[650,'Good'],[500,'Fair'],[350,'Needs work'],[0,'Just starting']];
+ return{total,band:bands.find(b=>total>=b[0])[1],col:total>=650?'var(--em)':total>=400?'var(--am)':L||T?'var(--am)':'var(--rd)',C,best:C.slice().sort((a,b)=>b.lost-a.lost)[0]};
+}
+function gauge(s,big){return`<svg class="gg${big?' big':''}" viewBox="0 0 200 112" role="img" aria-label="${s.L?'Level '+s.lv+', '+s.band+', '+s.xp+' XP':'Score '+s.total+' out of 1000, '+s.band}"><path d="M10 102A90 90 0 0 1 190 102" pathLength="100" fill="none" stroke="#1e293b" stroke-width="14" stroke-linecap="round"/><path d="M10 102A90 90 0 0 1 190 102" pathLength="100" fill="none" stroke="${s.col}" stroke-width="14" stroke-linecap="round" stroke-dasharray="${s.total/10} 100"/><text x="100" y="86" text-anchor="middle" class="gn">${s.disp||s.total}</text><text x="100" y="106" text-anchor="middle" class="gl">${E(s.band)}</text></svg>`}
+function scoreCard(){
+ const s=healthScore(),t=isL()?'Money Power':isT()?'Money score':'Financial health score';
+ if(!s)return`<button class="sc off" data-a="go" data-t="${plan().ready?'score':'plan'}"><div><b>${t}</b><small>${plan().ready?'Add your income to see it.':isL()?'Fill your jars to unlock it.':'Set your plan to unlock it.'}</small></div><span>›</span></button>`;
+ return`<button class="sc" data-a="go" data-t="score">${gauge(s)}<div><b>${t}</b><small>${s.L?(s.toNext?s.toNext+' XP to '+E(s.nextName):'Top level reached! 🏆'):s.best&&s.best.lost>0?'Biggest boost: '+E(s.best.n):'All areas look strong'}</small></div><span>›</span></button>`;
+}
+function tabScore(){
+ const s=healthScore(),L=isL(),t=L?'Money Power':isT()?'Money score':'Financial health score';
+ if(!s)return`<h2>${t}</h2><p class="sub">Your numbers, scored out of 1000.</p><div class="em">${plan().ready?'Add your income in setup to see your score.':L?'Fill your jars first. Then your score appears here.':'Set your allocation rules in Plan first. Then your score appears here.'}</div><div class="hb" style="margin-top:16px"><button class="btn pri" data-a="go" data-t="${plan().ready?'more':'plan'}">${plan().ready?'Open setup':L?'Go to Jars':'Go to Plan'}</button></div>`;
+ if(s.L)return`<h2>${t}</h2><p class="sub">Your level grows with XP. Every smart money move earns some.</p><div class="cd scd">${gauge(s,1)}<p class="s2">⭐ ${s.xp} XP · ${s.toNext?s.toNext+' more to reach '+E(s.nextName):'You have reached the top level!'}</p></div><div class="h3s">How to earn XP</div><div class="fl">${s.ways.map(w=>`<div><span>${w[2]?'✅':'⭐'} ${E(w[0])}<small>${E(w[1])}</small></span></div>`).join('')}</div><div class="h3s">Why levels?</div><div class="fp"><p>Good money habits are built by doing small things again and again. XP shows you are doing them. Levels are just for fun and are not a real score.</p></div><div class="hb"><button class="btn gho" data-a="go" data-t="home">Back to home</button></div>`;
+ const sorted=s.C.slice().sort((a,b)=>b.lost-a.lost);
+ return`<h2>${t}</h2><p class="sub">Your numbers, scored out of 1000.</p>
+ <div class="cd scd">${gauge(s,1)}<p class="s2">${L?'This shows how well you are using your jars.':'Built from '+s.C.length+' checks on your own entries.'}</p></div>
+ ${s.best&&s.best.lost>0?`<div class="bub" style="margin-top:14px"><span class="mo">💡</span><div><b>Biggest boost: ${E(s.best.n)}.</b> ${E(s.best.tip)}</div></div>`:''}
+ <div class="h3s">What makes up your score</div><div class="cm">${sorted.map(c=>`<details><summary><span>${c.ic} ${E(c.n)}</span><span class="rk ${c.f>=.8?'lo':c.f<.4?'hi':''}">${c.pts}/${c.cap}</span><svg class="i"><use href="#pl"/></svg></summary><div class="pb" style="--c:${c.f>=.8?'var(--em)':c.f<.4?'var(--rd)':'var(--am)'};margin:0 0 10px"><i style="width:${Math.round(c.f*100)}%"></i></div><p><b>Why am I seeing this?</b> ${E(c.why)}</p><p><b>What can help:</b> ${E(c.tip)}</p></details>`).join('')}</div>
+ <div class="h3s">How this is worked out</div>
+ <div class="fp"><p>Each check looks at something you entered in SpendWise, such as savings, bills, goals and spends. Checks with no data yet are skipped, and the rest are scaled to 1000. Benchmarks like 6 months of costs or saving 20% are common rules of thumb, not rules for you.</p></div>
+ <p class="fn">This is not a credit score and is not connected to CIBIL or any bank. It is general guidance, not regulated financial advice.</p>
+ <div class="hb"><button class="btn gho" data-a="go" data-t="ask">Ask the advisor about my score</button></div>`;
 }
 
 /* ===== setup wizard ===== */
@@ -295,6 +426,7 @@ function tabHomeG(){
  ${m.pool>0&&m.safeNow!=null?`<div class="pb" style="--c:${neg?'var(--rd)':left<25?'var(--am)':'var(--em)'}"><i style="width:${left}%"></i></div>`:''}
  <p>${cy?`${R(m.spentM)} spent of ${R(m.pool)} this month`:p.ready?'Planned for '+mname()+'. Allocate when your income arrives.':'Enter your allocation rules to see how much you can spend.'}</p>
  <div class="hb">${cta}</div></div>
+ ${scoreCard()}
  <div class="tl"><button data-a="go" data-t="spends" data-f="1"><span class="ti">${I.plus}</span>Add spend</button><button data-a="go" data-t="plan"><span class="ti">${I.plan}</span>Allocate</button><button data-a="go" data-t="plan"><span class="ti">${I.spark}</span>AI plan</button><button data-a="go" data-t="goals"><span class="ti">${I.goals}</span>Goals</button></div>
  <div class="tl" style="margin-top:10px;grid-template-columns:1fr"><button data-a="go" data-t="ask"><span class="ti">${I.ask}</span>Ask the advisor how to plan ahead</button></div>${invTile()}
  <div class="h3s">This month</div>
@@ -329,6 +461,7 @@ function tabHomeL(){
  <div class="hc ${sp!=null&&sp<0?'neg':''}"><small>${J.s.ic} Spend jar ${cy?'right now':'(planned)'}</small><b>${sp==null?'₹ —':R(sp)}</b>
  ${sp!=null&&m.pool>0?`<div class="pb" style="--c:${left<25?'var(--am)':'var(--em)'}"><i style="width:${left}%"></i></div>`:''}
  <p>${cy?`${R(m.spentM)} spent so far. When this jar is empty, you wait until next month!`:'Your pocket money is not split yet. Fill your jars to start.'}</p><div class="hb">${cta}</div></div>
+ ${scoreCard()}
  <div class="h3s">Your jars</div>${jar3()}
  <div class="h3s">Your dream</div>${dreamCard()||'<div class="em">No dream yet.</div>'}
  <div class="h3s">Today’s game</div><div id="gm">${gameHTML()}</div>
@@ -371,6 +504,7 @@ function tabHomeT(){
  <div class="hc ${neg?'neg':''}"><small>Left to spend</small><b>${m.safeNow==null?'₹ —':R(m.safeNow)}</b>
  ${m.pool>0&&m.safeNow!=null?`<div class="pb" style="--c:${neg?'var(--rd)':left<25?'var(--am)':'var(--em)'}"><i style="width:${left}%"></i></div>`:''}
  <p>${cy?R(m.spentM)+' spent this month':p.ready?'Tap Money in when it lands.':'Pick how much to save.'}</p><div class="hb">${cta}</div></div>
+ ${scoreCard()}
  <div class="tt3"><button data-a="go" data-t="spends" data-f="1"><span>➕</span>Spend</button><button data-a="go" data-t="plan"><span>💰</span>Save</button><button data-a="go" data-t="goals"><span>🎯</span>Goals</button></div>
  ${invTile()}
  <div class="h3s">Recent</div>${ev.length?rows(ev):'<div class="em">Nothing yet.</div>'}
@@ -417,8 +551,7 @@ function readyHTML(){
   row(debt>0?false:true,'Costly debt',debt>0?`You owe ${R(debt)}. Paying off costly debt, such as credit cards, often beats any investment return.`:'No debts listed.')+
   row(p.iSet?p.i>0:null,'A monthly amount to invest',p.iSet?(p.i>0?`Your plan sets aside ${R(p.i)} a month.`:'Your investing % is 0 right now.'):'Set an investing % in Plan.')+
   `</div><div style="margin-top:14px"><button class="btn gho sm" data-a="go" data-t="ask">Ask the advisor about this</button></div>`}
-/* Education content from profiles.js (window.SW_BANK). `kind` comes from the profile's bank field.
-   Reuses the .cm / .tp / .fp classes already in the stylesheet, so there is no new CSS. */
+/* Education content from profiles.js (window.SW_BANK). `kind` comes from the profile's bank field. */
 function bankHTML(kind){
  const B=window.SW_BANK||{};
  const card=(x,i)=>`<details${i===0?' open':''}><summary><span>${E(x.t||x.n)}${x.ic?' '+x.ic:''}</span><svg class="i"><use href="#pl"/></svg></summary><p>${E(x.b||x.what)}</p>${x.why?`<p><b>Why it matters:</b> ${E(x.why)}</p>`:''}</details>`;
@@ -543,7 +676,7 @@ function chatFmt(t){
 function chatSnap(){
   if(!st)return null;
   const p=plan(),m=money();
-  return{profile:SW.data.profile||'unspecified',monthly_income:st.income,existing_savings:st.savings,debts_owed:st.debt||0,about_you:pfSafe(),dependents:st.dependents||0,
+  return{profile:SW.data.profile||'unspecified',health_score_out_of_1000:isL()?null:(healthScore()||{}).total??null,monthly_income:st.income,existing_savings:st.savings,debts_owed:st.debt||0,about_you:pfSafe(),dependents:st.dependents||0,
     fixed_monthly_total:p.fx,emergency_pct:st.rules.e,invest_pct:st.rules.i,emergency_target_months:st.rules.em,
     goals:st.goals.map(g=>({name:String(g.n||'Goal').slice(0,40),target:g.t,saved:g.s,months_left:months(g.d),monthly_needed:need(g)})),
     spent_this_month:m.spentM,safe_to_spend_now:m.safeNow,safe_to_spend_planned:p.safe,month_allocated:!!m.cy,
@@ -559,29 +692,30 @@ function drawChat(log,qs,msgs,busy,prompts,err){
 }
 function paintChat(app){
   if(app){
-    if(tab==='ask'&&$('alog')){drawChat($('alog'),$('aqs'),st.chat||[],chatBusy,pd().ask||APP_QS,chatErr);const b=$('aform')&&$('aform').querySelector('button');if(b)b.disabled=chatBusy}
+    if(tab==='ask'&&$('alog')){drawChat($('alog'),$('aqs'),st.chat||[],chatBusy,pd().ask||APP_QS,chatErr);const b=$('aform')&&$('aform').querySelector('button');if(b)b.disabled=chatBusy;if($('aleft'))$('aleft').innerHTML=aiLeftHTML()}
     return}
   drawChat($('lclog'),$('lcqs'),landChat.msgs,landChat.busy,LAND_QS,landChat.err);
   const b=$('lcsend');if(b)b.disabled=!!landChat.busy;
 }
 async function sendChat(store,text,app){
-  const q=String(text||'').trim().slice(0,800);if(!q||store.busy)return;
+  const q=String(text||'').trim().slice(0,app?aiLim().chars:500);if(!q||store.busy)return;
   if(!aiReady()){toast('AI is not connected yet. You can still explore SpendWise without it.',1);return}
-  if(!app&&landChat.n>=8){landChat.err='That is the end of the preview. Open the app to keep chatting with your own numbers.';paintChat(false);return}
+  if(app&&aiLeft('c')<=0){store.err=aiPaid()?'You have used today\'s AI messages. They reset tomorrow.':'You have used today\'s free AI messages. They reset tomorrow, or upgrade to Copilot for more.';paintChat(true);return}
+  if(!app&&landChat.n>=AI_LIMITS.landing){landChat.err='That is the end of the preview. Open the app to keep chatting with your own numbers.';paintChat(false);return}
   store.err='';store.msgs.push({role:'user',content:q});store.busy=true;if(!app)landChat.n++;
   if(app)await save();
   paintChat(app);
   try{
     const sys=app?CHAT_SYS_APP+(pd().sys?'\n\nAbout this person: '+pd().sys:''):CHAT_SYS_PUBLIC;
     const snap=app?chatSnap():null;
-    const history=store.msgs.filter(m=>!m.local).slice(-10);
+    const history=store.msgs.filter(m=>!m.local).slice(-(app?aiLim().hist:6));
     while(history.length&&history[0].role!=='user')history.shift();
     const messages=[{role:'system',content:sys+(snap?'\n\nNumbers snapshot (no identity):\n'+JSON.stringify(snap):'')},...history];
-    const reply=(await aiAsk(messages,{temperature:.45,max_tokens:900})).trim();
+    const reply=(await aiAsk(messages,{temperature:.45,max_tokens:app?aiLim().reply:400})).trim();
     if(!reply)throw new Error('The advisor sent an empty reply. Please try again.');
     store.msgs.push({role:'assistant',content:reply.slice(0,4000)});
+    if(app)aiUse().c++;
   }catch(e){
-    /* errors are shown, never stored in the history. The question goes back in the box so nothing is lost. */
     store.msgs.pop();if(!app)landChat.n--;
     store.err=(e&&e.message)||'Something went wrong. Please try again.';
     const inp=$(app?'ainput':'lcinput');if(inp&&!inp.value)inp.value=q;
@@ -606,8 +740,9 @@ function tabAsk(){
   return`<h2>Ask</h2><p class="sub">${isL()?'Ask anything about money. You will get simple answers.':'Plan your future and work through this month, using your SpendWise numbers.'}</p>
   ${!aiReady()?'<p class="fn" style="margin-top:-8px">AI is not connected yet, so the advisor cannot reply until it is.</p>':''}
   <div class="chatbox"><div class="chatlog" id="alog" aria-live="polite"></div><div class="chatqs" id="aqs"></div>
-  <form class="chatin" id="aform"><textarea id="ainput" rows="1" maxlength="800" placeholder="Ask about your plan, a tight month, or the next few years…" aria-label="Message the SpendWise advisor"></textarea>
+  <form class="chatin" id="aform"><textarea id="ainput" rows="1" maxlength="${aiLim().chars}" placeholder="Ask about your plan, a tight month, or the next few years…" aria-label="Message the SpendWise advisor"></textarea>
   <button class="btn pri" type="submit"${chatBusy?' disabled':''}>Send</button></form></div>
+  <p class="fn" id="aleft">${aiLeftHTML()}</p>
   <p class="fn">The advisor sees your numbers only — never your name or email. General guidance, not regulated financial advice.</p>`;
 }
 function tabMore(){
@@ -631,8 +766,8 @@ const navItems=()=>{const L=isL();return[['home','Home',I.home],['spends','Spend
 function render(){
  if(!st.done){wizard();return}
  root.classList.toggle('big',!!pd().big);
- const body={home:tabHome,spends:tabSpends,plan:tabPlan,goals:tabGoals,ask:tabAsk,more:tabMore,invest:tabInvest}[tab]();
- root.innerHTML=`<div class="pg">${body}</div><nav class="nv" aria-label="App"><div>${navItems().map(n=>`<button data-a="go" data-t="${n[0]}" ${(tab==='invest'?'plan':tab)===n[0]?'aria-current="page"':''}>${n[2]}${n[1]}</button>`).join('')}</div></nav>`;
+ const body={home:tabHome,spends:tabSpends,plan:tabPlan,goals:tabGoals,ask:tabAsk,more:tabMore,invest:tabInvest,score:tabScore}[tab]();
+ root.innerHTML=`<div class="pg">${body}</div><nav class="nv" aria-label="App"><div>${navItems().map(n=>`<button data-a="go" data-t="${n[0]}" ${(tab==='invest'?'plan':tab==='score'?'home':tab)===n[0]?'aria-current="page"':''}>${n[2]}${n[1]}</button>`).join('')}</div></nav>`;
  if(tab==='ask'){
   if(!st.chat)st.chat=[{role:'assistant',content:CHAT_HELLO,local:true}];
   const store={get msgs(){return st.chat},get busy(){return chatBusy},set busy(v){chatBusy=v},get err(){return chatErr},set err(v){chatErr=v}};
@@ -659,17 +794,18 @@ function addSpend(){
  toast('Added '+R(a)+(cat?' · '+cat:'')+xp);cat='';nw='';return true;
 }
 
-/* ===== AI (optional) =====
-   Sends only numbers. Never the name or email. The answer is validated and shown to the user, who decides to apply it. */
+/* ===== AI (optional) ===== */
 async function aiAsk(messages,opt={}){
   const direct=!AI_CONFIG.ENDPOINT,headers={'Content-Type':'application/json'};
   if(direct){headers.Authorization='Bearer '+AI_CONFIG.DIRECT_KEY;headers['X-Title']='SpendWise'}
   const body={messages,temperature:opt.temperature??.2,max_tokens:opt.max_tokens??700};if(AI_CONFIG.MODEL)body.model=AI_CONFIG.MODEL;
-  const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),opt.timeout||45000);
+  const ctl=new AbortController();let timedOut=false;const to=setTimeout(()=>{timedOut=true;ctl.abort()},opt.timeout||90000);
  let r;try{r=await fetch(direct?'https://openrouter.ai/api/v1/chat/completions':AI_CONFIG.ENDPOINT,{method:'POST',headers,body:JSON.stringify(body),signal:ctl.signal})}
- catch{throw new Error('Could not reach the AI service. Check your connection and try again.')}finally{clearTimeout(to)}
- if(!r.ok)throw new Error(r.status===402?'The AI service is out of credits.':r.status===429?'The free AI is at its usage limit right now. Wait a minute and try again, or come back later.':'The AI request failed ('+r.status+').');
- const j=await r.json(),content=j.choices?.[0]?.message?.content;
+ catch(err){console.warn('AI request failed',err);throw new Error(timedOut?'The AI took too long to answer. Try a shorter question, or try again in a moment.':'The request was blocked or the connection dropped before the AI replied. If this keeps happening, the proxy may be rejecting browser requests (CORS).')}
+ if(!r.ok){clearTimeout(to)}
+ if(!r.ok)throw new Error(r.status===402?'The AI service is out of credits.':r.status===429?'The free AI is at its usage limit right now. Wait a minute and try again, or come back later.':r.status===502||r.status===504?'The AI had trouble answering that. Please try again in a moment.':r.status===404?'The AI model is not available right now. Please try again later.':'The AI request failed ('+r.status+').');
+ let j;try{j=await r.json()}catch(err){console.warn('AI body failed',err);throw new Error(timedOut?'The AI took too long to answer. Try again in a moment.':'The AI reply was cut off. Please try again.')}finally{clearTimeout(to)}
+ const content=j.choices?.[0]?.message?.content;
  const strip=x=>String(x).replace(/<think>[\s\S]*?<\/think>/gi,'').replace(/<\/?think>/gi,'').trim();
  if(typeof content==='string')return strip(content);
  if(Array.isArray(content))return strip(content.map(part=>typeof part==='string'?part:part?.text||'').join(''));
@@ -710,8 +846,9 @@ async function aiAllocate(){
 async function runAI(){
  if(!aiReady())return toast('AI is not connected yet. Enter the numbers yourself for now.',1);
  if(!(st.income>0))return toast('Add your income in setup first.',1);
+ if(aiLeft('p')<=0){aiErr=aiPaid()?'You have used today\'s AI plans. They reset tomorrow. You can still enter the numbers yourself.':'You have used today\'s '+aiLim().plan+' free AI plans. They reset tomorrow, or upgrade to Copilot for more. You can still enter the numbers yourself.';return render()}
  aiBusy=true;aiErr='';render();
- try{st.sug=await aiAllocate();await save()}catch(e){aiErr=e.message||'Something went wrong.'}
+ try{st.sug=await aiAllocate();aiUse().p++;await save()}catch(e){aiErr=e.message||'Something went wrong.'}
  aiBusy=false;render();
 }
 
@@ -749,6 +886,7 @@ function start(r){
    else if(a==='aiapply'){const s=st.sug;st.rules={e:s.e,i:s.i,em:s.em};st.sug=null;await save();render();toast('Rules updated. Review them, then allocate.')}
    else if(a==='aidismiss'){st.sug=null;await save();render()}
    else if(a==='logout')SW.logout();
+   else if(a==='upgrade'){if(SW.upgrade)SW.upgrade()}
    else if(a==='isec'){invSec=b.dataset.s;rr()}
    else if(a==='hz'){invH=invH===b.dataset.k?'':b.dataset.k;rr()}
    else if(a==='sipuse'){st.inv.sip.m=plan().i;await save();rr()}
