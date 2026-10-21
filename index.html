@@ -316,7 +316,7 @@ footer{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 
 <section id="advisor" style="padding-top:40px">
 <div class="wrap">
-<div class="sh"><h2 class="t">Ask how to plan your future.</h2><p class="sub">A calm money coach for tight months, long-term goals, and the next right step. Same AI model SpendWise uses for allocation math. General guidance, not regulated advice.</p></div>
+<div class="sh"><h2 class="t">Ask how to plan your future.</h2><p class="sub">A calm money coach for tight months, long-term goals, and the next right step. Same NVIDIA model SpendWise uses for allocation math. General guidance, not regulated advice.</p></div>
 <div class="chatbox" id="lchat">
 <div class="chatlog" id="lclog" aria-live="polite"></div>
 <div class="chatqs" id="lcqs"></div>
@@ -430,9 +430,50 @@ const jget=(k,d)=>{try{return JSON.parse(LS.getItem(k))??d}catch{return d}};
 async function dk(pw,salt){const m=await crypto.subtle.importKey('raw',enc.encode(pw),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:310000,hash:'SHA-256'},m,{name:'AES-GCM',length:256},false,['encrypt','decrypt'])}
 async function seal(k,o){const iv=crypto.getRandomValues(new Uint8Array(12));return{iv:b64(iv),d:b64(await crypto.subtle.encrypt({name:'AES-GCM',iv},k,enc.encode(JSON.stringify(o))))}}
 async function unseal(k,x){return JSON.parse(dec.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:ub(x.iv)},k,ub(x.d))))}
-const SW=window.SW={user:null,key:null,data:null,start:null,
- async save(){LS.setItem('sw_v_'+SW.user.email,JSON.stringify(await seal(SW.key,SW.data)))},
- logout(){SW.user=SW.key=SW.data=null;document.body.classList.remove('in');$('appRoot').innerHTML=''}};
+/* ===== cloud: the worker + database. The app keeps working offline from the encrypted copy on this device ===== */
+const apiBase=()=>(window.SW_API||(typeof AI_CONFIG!=='undefined'?AI_CONFIG.ENDPOINT:'')||'').replace(/\/$/,'');
+async function api(path,o={}){
+ const base=apiBase();if(!base)return{status:0,ok:false,data:null};
+ const c=new AbortController(),t=setTimeout(()=>c.abort(),o.timeout||15000);
+ try{const r=await fetch(base+path,{method:o.method||'GET',headers:Object.assign({'Content-Type':'application/json'},SW.token?{Authorization:'Bearer '+SW.token}:{}),body:o.body?JSON.stringify(o.body):undefined,signal:c.signal});
+  let d=null;try{d=await r.json()}catch{}return{status:r.status,ok:r.ok,data:d}}
+ catch{return{status:0,ok:false,data:null}}finally{clearTimeout(t)}}
+/* The login proof is made in the browser from the password. The server never receives the password. */
+async function proofFor(pw,saltB64){const m=await crypto.subtle.importKey('raw',enc.encode(pw),'PBKDF2',false,['deriveBits']);return b64(await crypto.subtle.deriveBits({name:'PBKDF2',salt:ub(saltB64),iterations:310000,hash:'SHA-256'},m,256))}
+const errMsg=(r,d)=>(r&&r.data&&r.data.error&&r.data.error.message)||d;
+let pushT=null,pushing=false,again=false;
+/* What the account (cloud) keeps: name, profile, and the profile's follow-up answers. Money data never leaves this device. */
+function acctPayload(){
+ const d=SW.data,P=(window.SW_PROFILES||{})[d.profile],pf=(d.setup&&d.setup.pf)||{},subs=[];
+ ((P&&P.q)||[]).forEach(q=>{if(q.t!=='select'&&q.t!=='chips')return;const v=pf[q.k];(Array.isArray(v)?v:v?[v]:[]).forEach(x=>subs.push({k:q.k,l:q.l,a:String(x)}))});
+ return{name:d.name||(SW.user&&SW.user.name)||'',profile:d.profile||'',subs}}
+const SW=window.SW={user:null,key:null,data:null,start:null,token:null,sync:'off',lastSync:0,onSync:null,api,
+ setSync(s){SW.sync=s;if(s==='synced')SW.lastSync=Date.now();if(SW.onSync)SW.onSync(s)},
+ async localWrite(){LS.setItem('sw_v_'+SW.user.email,JSON.stringify(await seal(SW.key,SW.data)))},
+ async save(){
+  await SW.localWrite();
+  if(SW.token){clearTimeout(pushT);pushT=setTimeout(()=>SW.push(),1200)}},
+ async push(){
+  if(!SW.token||!SW.data||!SW.user)return;
+  if(pushing){again=true;return}
+  const body=acctPayload(),sig=JSON.stringify(body);
+  if(sig===SW.data.acct){SW.setSync('synced');return}
+  pushing=true;clearTimeout(pushT);
+  try{
+   const r=await api('/me',{method:'PUT',body});
+   if(r.ok){SW.data.acct=sig;await SW.localWrite();SW.setSync('synced')}
+   else if(r.status===401){SW.token=null;SW.setSync('off')}
+   else SW.setSync('offline')}
+  finally{pushing=false;if(again){again=false;SW.push()}}},
+ async logout(){
+  clearTimeout(pushT);
+  if(SW.token){try{await SW.push()}catch{}api('/auth/logout',{method:'POST',timeout:4000})}
+  SW.user=SW.key=SW.data=SW.token=null;SW.sync='off';document.body.classList.remove('in');$('appRoot').innerHTML=''},
+ async deleteAccount(){
+  const em=SW.user&&SW.user.email;if(!em)return false;
+  if(SW.token){const r=await api('/me',{method:'DELETE'});if(!r.ok)return false}
+  const us=jget('sw_users',{});delete us[em];LS.setItem('sw_users',JSON.stringify(us));LS.removeItem('sw_v_'+em);
+  SW.user=SW.key=SW.data=SW.token=null;SW.sync='off';document.body.classList.remove('in');$('appRoot').innerHTML='';return true}};
 /* ===== plan choice + demo checkout (UI only, nothing is charged, stored or sent) ===== */
 let ENTRY={src:'open'};
 const FL=()=>{let f=$('flow');if(!f){f=document.createElement('section');f.id='flow';f.setAttribute('role','dialog');f.setAttribute('aria-modal','true');document.body.append(f)}return f};
@@ -489,30 +530,75 @@ function payPage(done,fromTiers){
    if(meth==='net'&&!bank)return err('Choose your bank.');
    busy=true;const b=f.querySelector('#pay');b.disabled=true;b.innerHTML='<span class="spin"></span> Processing…';
    setTimeout(()=>{f.querySelector('#pb').innerHTML=`<div class="pn"><div class="big">🕒</div><h2>Payments open soon</h2><p>Copilot is not switched on yet, so nothing was charged. You are on Core for now, and we have noted your interest.</p><button class="btn pri" id="go" style="width:100%">Continue with free</button></div>`;
-    f.querySelector('#go').onclick=()=>{SW.data.interest='copilot';done('free')};f.querySelector('#go').focus()},1800)}};
+    f.querySelector('#go').onclick=()=>{SW.data.interest='copilot';if(SW.token)api('/account/interest',{method:'POST',body:{interest:'copilot'}});done('free')};f.querySelector('#go').focus()},1800)}};
  draw()}
 SW.upgrade=()=>payPage(async t=>{if(SW.data.tier!=='paid')SW.data.tier=t;try{await SW.save()}catch{}hideFlow()},false);
 function begin(user,key,data){
  SW.user=user;SW.key=key;SW.data=data;closeAuth();
- gate(()=>{document.body.classList.add('in');scrollTo(0,0);beginApp(user,data)})}
+ gate(()=>{document.body.classList.add('in');scrollTo(0,0);beginApp(user,data);SW.setSync(SW.token?'pending':'off');if(SW.token)SW.push()})}
 function beginApp(user,data){
  if(SW.start)SW.start($('appRoot'));
  else{const r=$('appRoot');r.innerHTML='<h2 class="t"></h2><p class="sub"></p>';r.querySelector('h2').textContent='Welcome, '+(user.name||'there').split(' ')[0]+'.';r.querySelector('p').textContent='Your encrypted vault is ready ('+(data.profile||'no profile yet')+'). The dashboard arrives in the next build step.'}
 }
+async function makeLocal(email,name,pw){
+ const us=jget('sw_users',{}),salt=crypto.getRandomValues(new Uint8Array(16)),key=await dk(pw,salt);
+ us[email]={name,profile:'',salt:b64(salt),ver:await seal(key,{ok:1})};LS.setItem('sw_users',JSON.stringify(us));return key}
+/* The vault on this device holds the budget data. The account supplies the plan, and on a new device the profile and its answers. */
+function pickData(cloud,lv,fallback){
+ const a=cloud.account||{},data=lv||fallback;
+ if(a.name&&!data.name)data.name=a.name;
+ if(a.profile&&!data.profile){data.profile=a.profile;data.setup=data.setup||{};const pf=data.setup.pf=data.setup.pf&&typeof data.setup.pf==='object'?data.setup.pf:{};
+  const P=(window.SW_PROFILES||{})[a.profile],multi={};((P&&P.q)||[]).forEach(q=>{if(q.t==='chips')multi[q.k]=1});
+  (a.subs||[]).forEach(x=>{if(multi[x.k])(pf[x.k]=pf[x.k]||[]).push(x.a);else pf[x.k]=x.a})}
+ if(a.tier==='paid'||a.profile)data.tier=a.tier;   /* the plan is decided by the server, never by this device */
+ return data}
 async function signUp(name,email,pw){
  const us=jget('sw_users',{});if(us[email])throw'An account with this email already exists. Try signing in.';
- const salt=crypto.getRandomValues(new Uint8Array(16)),key=await dk(pw,salt);
- us[email]={name,profile:'',salt:b64(salt),ver:await seal(key,{ok:1})};LS.setItem('sw_users',JSON.stringify(us));
- const data={profile:'',name,created:Date.now()};SW.user={email,name};SW.key=key;SW.data=data;await SW.save();begin({email,name},key,data)}
+ const salt=crypto.getRandomValues(new Uint8Array(16)),proof=await proofFor(pw,b64(salt));
+ const r=await api('/auth/signup',{method:'POST',body:{email,name,salt:b64(salt),proof}});
+ SW.token=null;
+ if(r.ok){SW.token=r.data.token}
+ else if(r.status===409)throw'An account with this email already exists. Try signing in.';
+ else if(r.status>0&&r.status<500)throw errMsg(r,'Could not create your account.');
+ const key=await makeLocal(email,name,pw),data={profile:'',name,created:Date.now()};
+ SW.user={email,name};SW.key=key;SW.data=data;await SW.save();begin({email,name},key,data)}
 async function signIn(email,pw){
- const u=jget('sw_users',{})[email];if(!u)throw'No account found with that email on this device.';
- const key=await dk(pw,ub(u.salt));try{await unseal(key,u.ver)}catch{throw'Wrong password.'}
- const v=jget('sw_v_'+email,null);begin({email,name:u.name},key,v?await unseal(key,v):{profile:u.profile||'',name:u.name})}
+ const local=jget('sw_users',{})[email];let cloud=null,migrate=false;
+ const s=await api('/auth/salt',{method:'POST',body:{email}});
+ if(s.ok){
+  const proof=await proofFor(pw,s.data.salt),r=await api('/auth/login',{method:'POST',body:{email,proof}});
+  if(r.ok)cloud=r.data;
+  else if(r.status===423)throw'Too many wrong attempts. Try again in 15 minutes.';
+  else if(r.status===401){if(!local)throw'Wrong email or password.';migrate=true}
+ }else if(!local)throw s.status===0||s.status>=500?'Could not reach SpendWise. Check your connection and try again.':errMsg(s,'Could not sign in.');
+ let key,lv=null,name=(local&&local.name)||'';
+ if(local){try{key=await dk(pw,ub(local.salt));await unseal(key,local.ver);const v=jget('sw_v_'+email,null);lv=v?await unseal(key,v):null}catch{key=null;lv=null}}
+ if(!key){ if(!cloud)throw'Wrong password.'; key=await makeLocal(email,(cloud.account&&cloud.account.name)||name,pw);name=(cloud.account&&cloud.account.name)||name}
+ if(migrate){ /* an account that so far exists only on this device: move it to the cloud */
+  const salt=crypto.getRandomValues(new Uint8Array(16)),r=await api('/auth/signup',{method:'POST',body:{email,name,salt:b64(salt),proof:await proofFor(pw,b64(salt))}});
+  if(r.status===409)throw'Wrong email or password.';
+  if(r.ok){cloud={token:r.data.token,account:r.data.account}}}
+ SW.token=cloud?cloud.token:null;
+ const fallback={profile:(local&&local.profile)||'',name};
+ const data=cloud?pickData(cloud,lv,fallback):(lv||fallback);
+ SW.user={email,name};SW.key=key;SW.data=data;await SW.localWrite();
+ begin({email,name},key,data)}
 async function googleIn(cred){
- try{const p=JSON.parse(dec.decode(ub(cred.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))));const email=p.email.toLowerCase();
- let ds=LS.getItem('sw_dk');if(!ds){ds=b64(crypto.getRandomValues(new Uint8Array(32)));LS.setItem('sw_dk',ds)}
- const key=await dk(ds,enc.encode(email)),v=jget('sw_v_'+email,null);
- begin({email,name:p.name,google:true},key,v?await unseal(key,v):{profile:'',name:p.name,created:Date.now()})}
+ try{
+  let p=null;try{p=JSON.parse(dec.decode(ub(cred.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))))}catch{}
+  const g=await api('/auth/google',{method:'POST',body:{credential:cred}});
+  let cloud=null;
+  if(g.ok)cloud=g.data;else if(g.status>0&&g.status<500)throw 0;
+  const email=(cloud?cloud.account.email:p&&p.email||'').toLowerCase(),nm=cloud?cloud.account.name:p&&p.name||'';
+  if(!email)throw 0;
+  let ds=LS.getItem('sw_dk');if(!ds){ds=b64(crypto.getRandomValues(new Uint8Array(32)));LS.setItem('sw_dk',ds)}
+  const key=await dk(ds,enc.encode(email));let lv=null;
+  try{const v=jget('sw_v_'+email,null);lv=v?await unseal(key,v):null}catch{lv=null}
+  SW.token=cloud?cloud.token:null;
+  const fallback={profile:'',name:nm,created:Date.now()};
+  const data=cloud?pickData(cloud,lv,fallback):(lv||fallback);
+  SW.user={email,name:nm,google:true};SW.key=key;SW.data=data;await SW.localWrite();
+  begin({email,name:nm,google:true},key,data)}
  catch(e){showErr('Google sign-in failed. Please try again.')}}
 // ===== auth overlay =====
 let mode='in';const au=$('auth'),af=$('authform'),ER=$('aer');
@@ -542,7 +628,6 @@ if(GOOGLE_CLIENT_ID){const g=document.createElement('script');g.src='https://acc
  g.onload=()=>{google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:r=>googleIn(r.credential),use_fedcm_for_button:true});google.accounts.id.renderButton($('gb'),{theme:'filled_black',size:'large',text:'continue_with',width:340});$('gw').hidden=false};document.head.append(g)}
 </script>
 <script src="profiles.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" defer></script>
 <script src="app.js"></script>
 </body>
 </html>
