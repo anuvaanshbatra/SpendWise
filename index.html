@@ -542,6 +542,7 @@ if(GOOGLE_CLIENT_ID){const g=document.createElement('script');g.src='https://acc
  g.onload=()=>{google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:r=>googleIn(r.credential),use_fedcm_for_button:true});google.accounts.id.renderButton($('gb'),{theme:'filled_black',size:'large',text:'continue_with',width:340});$('gw').hidden=false};document.head.append(g)}
 </script>
 <script src="profiles.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" defer></script>
 <script src="app.js"></script>
 </body>
 </html>
