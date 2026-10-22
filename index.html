@@ -12,10 +12,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&display=swap" rel="stylesheet">
+<script>try{if(localStorage.getItem('sw_session'))document.documentElement.classList.add('rs')}catch{}</script>
 <style>
 :root{--bg:#030712;--panel:#0b1220;--line:#1e293b;--tx:#e2e8f0;--mu:#94a3b8;--em:#34d399;--cy:#22d3ee;--am:#fbbf24;--rd:#f87171;--r:20px;--pad:clamp(20px,5vw,40px)}
 *{box-sizing:border-box;margin:0}
 html{scroll-behavior:smooth;scroll-padding-top:84px}
+html.rs main,html.rs header,html.rs footer,html.rs .sticky{visibility:hidden}
 body{background:var(--bg);color:var(--tx);font:400 16px/1.6 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;padding-bottom:env(safe-area-inset-bottom)}
 a{color:inherit;text-decoration:none}
 button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
@@ -430,6 +432,24 @@ const jget=(k,d)=>{try{return JSON.parse(LS.getItem(k))??d}catch{return d}};
 async function dk(pw,salt){const m=await crypto.subtle.importKey('raw',enc.encode(pw),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:310000,hash:'SHA-256'},m,{name:'AES-GCM',length:256},false,['encrypt','decrypt'])}
 async function seal(k,o){const iv=crypto.getRandomValues(new Uint8Array(12));return{iv:b64(iv),d:b64(await crypto.subtle.encrypt({name:'AES-GCM',iv},k,enc.encode(JSON.stringify(o))))}}
 async function unseal(k,x){return JSON.parse(dec.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:ub(x.iv)},k,ub(x.d))))}
+/* ===== session restore: survives reload. The AES key is stored as a NON-extractable CryptoKey in IndexedDB ===== */
+const idb=()=>new Promise((res,rej)=>{const r=indexedDB.open('sw_session',1);r.onupgradeneeded=()=>r.result.createObjectStore('k');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+async function idbPut(k,v){const db=await idb();return new Promise((res,rej)=>{const t=db.transaction('k','readwrite');t.objectStore('k').put(v,k);t.oncomplete=()=>res();t.onerror=()=>rej(t.error)})}
+async function idbGet(k){const db=await idb();return new Promise((res,rej)=>{const q=db.transaction('k').objectStore('k').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}
+function clearSession(){try{LS.removeItem('sw_session')}catch{}idb().then(db=>{db.transaction('k','readwrite').objectStore('k').delete('key')}).catch(()=>{})}
+async function saveSession(){
+ const rec={u:SW.user,t:SW.token,tab:(SW.resume&&SW.resume.tab)||'home',at:Date.now()};
+ try{await idbPut('key',SW.key);LS.setItem('sw_session',JSON.stringify(rec))}catch{}}
+async function restoreSession(){
+ const s=jget('sw_session',null);
+ if(!s||!s.u||!s.u.email||Date.now()-s.at>30*864e5)return false; /* 30-day limit */
+ try{
+  const key=await idbGet('key'),v=jget('sw_v_'+s.u.email,null);
+  if(!key||!v){clearSession();return false}
+  const data=await unseal(key,v);
+  SW.token=s.t||null;SW.resume={tab:s.tab};
+  begin(s.u,key,data);return true}
+ catch{clearSession();return false}}
 /* ===== cloud: the worker + database. The app keeps working offline from the encrypted copy on this device ===== */
 const apiBase=()=>(window.SW_API||(typeof AI_CONFIG!=='undefined'?AI_CONFIG.ENDPOINT:'')||'').replace(/\/$/,'');
 async function api(path,o={}){
@@ -447,8 +467,9 @@ function acctPayload(){
  const d=SW.data,P=(window.SW_PROFILES||{})[d.profile],pf=(d.setup&&d.setup.pf)||{},subs=[];
  ((P&&P.q)||[]).forEach(q=>{if(q.t!=='select'&&q.t!=='chips')return;const v=pf[q.k];(Array.isArray(v)?v:v?[v]:[]).forEach(x=>subs.push({k:q.k,l:q.l,a:String(x)}))});
  return{name:d.name||(SW.user&&SW.user.name)||'',profile:d.profile||'',subs}}
-const SW=window.SW={user:null,key:null,data:null,start:null,token:null,sync:'off',lastSync:0,onSync:null,api,
+const SW=window.SW={user:null,key:null,data:null,start:null,token:null,sync:'off',lastSync:0,onSync:null,resume:null,api,
  setSync(s){SW.sync=s;if(s==='synced')SW.lastSync=Date.now();if(SW.onSync)SW.onSync(s)},
+ setTab(t){try{const s=jget('sw_session',null);if(s&&s.tab!==t){s.tab=t;LS.setItem('sw_session',JSON.stringify(s))}}catch{}},
  async localWrite(){LS.setItem('sw_v_'+SW.user.email,JSON.stringify(await seal(SW.key,SW.data)))},
  async save(){
   await SW.localWrite();
@@ -466,12 +487,13 @@ const SW=window.SW={user:null,key:null,data:null,start:null,token:null,sync:'off
    else SW.setSync('offline')}
   finally{pushing=false;if(again){again=false;SW.push()}}},
  async logout(){
-  clearTimeout(pushT);
+  clearTimeout(pushT);clearSession();
   if(SW.token){try{await SW.push()}catch{}api('/auth/logout',{method:'POST',timeout:4000})}
   SW.user=SW.key=SW.data=SW.token=null;SW.sync='off';document.body.classList.remove('in');$('appRoot').innerHTML=''},
  async deleteAccount(){
   const em=SW.user&&SW.user.email;if(!em)return false;
   if(SW.token){const r=await api('/me',{method:'DELETE'});if(!r.ok)return false}
+  clearSession();
   const us=jget('sw_users',{});delete us[em];LS.setItem('sw_users',JSON.stringify(us));LS.removeItem('sw_v_'+em);
   SW.user=SW.key=SW.data=SW.token=null;SW.sync='off';document.body.classList.remove('in');$('appRoot').innerHTML='';return true}};
 /* ===== plan choice + demo checkout (UI only, nothing is charged, stored or sent) ===== */
@@ -534,7 +556,7 @@ function payPage(done,fromTiers){
  draw()}
 SW.upgrade=()=>payPage(async t=>{if(SW.data.tier!=='paid')SW.data.tier=t;try{await SW.save()}catch{}hideFlow()},false);
 function begin(user,key,data){
- SW.user=user;SW.key=key;SW.data=data;closeAuth();
+ SW.user=user;SW.key=key;SW.data=data;closeAuth();saveSession();
  gate(()=>{document.body.classList.add('in');scrollTo(0,0);beginApp(user,data);SW.setSync(SW.token?'pending':'off');if(SW.token)SW.push()})}
 function beginApp(user,data){
  if(SW.start)SW.start($('appRoot'));
@@ -629,5 +651,6 @@ if(GOOGLE_CLIENT_ID){const g=document.createElement('script');g.src='https://acc
 </script>
 <script src="profiles.js"></script>
 <script src="app.js"></script>
+<script>restoreSession().then(ok=>{if(!ok)document.documentElement.classList.remove('rs')},()=>document.documentElement.classList.remove('rs'));setTimeout(()=>document.documentElement.classList.remove('rs'),4000)</script>
 </body>
 </html>
