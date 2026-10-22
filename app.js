@@ -655,6 +655,7 @@ function render(){
  if(!st.done){wizard();return}
  root.classList.toggle('big',!!pd().big);
  const body={home:tabHome,spends:tabSpends,plan:tabPlan,goals:tabGoals,ask:tabAsk,more:tabMore,invest:tabInvest}[tab]();
+ if(SW.setTab)SW.setTab(tab); /* remember the current tab so a reload returns here */
  root.innerHTML=`<div class="pg">${body}</div><nav class="nv" aria-label="App"><div>${navItems().map(n=>`<button data-a="go" data-t="${n[0]}" ${(tab==='invest'?'plan':tab)===n[0]?'aria-current="page"':''}>${n[2]}${n[1]}</button>`).join('')}</div></nav>`;
  if(tab==='ask'){
   if(!st.chat)st.chat=[{role:'assistant',content:CHAT_HELLO,local:true}];
@@ -742,7 +743,10 @@ async function runAI(){
 function rr(m){const y=scrollY;if(st.done){render();if(m)toast(m,1)}else wizard(m||'');scrollTo(0,y)}
 /* ===== start ===== */
 function start(r){
- root=r;st=Object.assign(blank(),SW.data.setup||{});tab='home';cat='';nw='';game=null;aiBusy=false;aiErr='';chatBusy=false;chatErr='';
+ root=r;st=Object.assign(blank(),SW.data.setup||{});
+ /* a page reload restores the tab the person was on (SW.resume is set by restoreSession in index.html) */
+ tab=['home','spends','plan','goals','ask','more','invest'].includes(SW.resume&&SW.resume.tab)?SW.resume.tab:'home';SW.resume=null;
+ cat='';nw='';game=null;aiBusy=false;aiErr='';chatBusy=false;chatErr='';
  if(!Array.isArray(st.chat)||!st.chat.length)st.chat=[{role:'assistant',content:CHAT_HELLO,local:true}];
  if(!st.v||st.v<3){ /* earlier builds pre-filled percentages; clear them so nothing is a default */
   st.rules={e:null,i:null,em:null};st.v=3;delete st.bal;save()}
