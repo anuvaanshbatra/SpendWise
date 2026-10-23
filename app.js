@@ -19,7 +19,7 @@ const css=document.createElement('style');css.textContent=`
 #appRoot{max-width:760px;padding-bottom:104px}#app .atop{max-width:760px}
 .pg h2{font-size:clamp(26px,4.4vw,32px);font-weight:800;letter-spacing:-.03em;line-height:1.15}
 .pg .sub{color:var(--mu);margin:6px 0 20px;font-size:15px}
-.h3s{font-size:12.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#64748b;margin:28px 0 10px}
+.h3s{font-size:12.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#8391a7;margin:28px 0 10px}
 .cd{padding:20px;border-radius:20px;background:var(--panel);border:1px solid var(--line)}
 .w{max-width:680px;margin:0 auto}.w h2{font-size:clamp(28px,5vw,40px);font-weight:800;letter-spacing:-.03em;line-height:1.1}
 .dots{display:flex;gap:8px;margin:0 0 28px}.dots i{flex:1;height:5px;border-radius:5px;background:var(--line)}.dots i.on{background:var(--em)}
@@ -30,7 +30,7 @@ const css=document.createElement('style');css.textContent=`
 .pre{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}.pre button{padding:8px 14px;border-radius:999px;border:1px solid var(--line);font-size:13px;font-weight:500;color:var(--mu)}.pre button:hover{color:#fff;border-color:var(--em)}
 .rw{position:relative;padding:16px 16px 4px;border:1px solid var(--line);border-radius:16px;background:var(--panel);margin-bottom:12px}
 .rw .gr{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:0 12px}
-.rw .dl{position:absolute;top:8px;right:8px;width:36px;height:36px;border-radius:10px;color:var(--mu);font-size:20px}.rw .dl:hover{color:var(--rd)}
+.rw .dl{position:absolute;top:4px;right:4px;width:44px;height:44px;border-radius:10px;color:var(--mu);font-size:20px}.rw .dl:hover{color:var(--rd)}
 .wn{display:flex;gap:12px;margin-top:26px}.wn .btn{flex:1}
 .wm{color:var(--rd);font-size:14px;margin:-6px 0 14px;min-height:1px}
 .hc{padding:24px;border-radius:26px;background:linear-gradient(160deg,#0f172a,#06251e);border:1px solid rgba(52,211,153,.38);box-shadow:0 20px 60px rgba(16,185,129,.08)}
@@ -50,7 +50,7 @@ const css=document.createElement('style');css.textContent=`
 .fl{border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--panel)}
 .fl>div{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line)}.fl>div:last-child{border:0}
 .fl small{display:block;color:var(--mu);font-size:12.5px}
-.rr{display:flex;align-items:center;gap:6px}.rr button{width:32px;height:32px;border-radius:10px;color:#64748b;font-size:20px;line-height:1}.rr button:hover{color:var(--rd)}
+.rr{display:flex;align-items:center;gap:6px}.rr button{width:44px;height:44px;border-radius:10px;color:#8391a7;font-size:20px;line-height:1}.rr button:hover{color:var(--rd)}
 .pos{color:var(--em)}.neg2{color:var(--rd)}
 .dh{display:flex;justify-content:space-between;font-size:13px;font-weight:600;color:var(--mu);margin:22px 4px 8px}
 .em{padding:26px;text-align:center;color:var(--mu);border:1px dashed var(--line);border-radius:18px;font-size:14px}
@@ -62,10 +62,10 @@ const css=document.createElement('style');css.textContent=`
 .bc small{color:var(--mu);font-size:12.5px;font-weight:600}.bc b{display:block;font-size:clamp(20px,4.6vw,26px);font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;margin:2px 0}
 .bc p{font-size:12.5px;color:var(--mu);margin-top:4px;line-height:1.4}.bc .pb{margin:10px 0 6px}
 .ac2{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}.ac2 h4{font-size:18px;font-weight:700}
-.s2{color:var(--mu);font-size:14px;margin-top:2px}.fn{font-size:12.5px;color:#64748b;margin-top:12px;line-height:1.5}
+.s2{color:var(--mu);font-size:14px;margin-top:2px}.fn{font-size:12.5px;color:#8391a7;margin-top:12px;line-height:1.5}
 .sb{display:flex;height:12px;border-radius:12px;overflow:hidden;background:#1e293b;margin:6px 0 12px;gap:2px}.sb i{display:block;height:100%;transition:width .3s}
 .lg2{display:grid;gap:8px;font-size:14px}.lg2 div{display:flex;justify-content:space-between;gap:10px;font-variant-numeric:tabular-nums}
-.lg2 span:first-child{display:flex;align-items:center;gap:8px;color:var(--mu)}.lg2 em{width:10px;height:10px;border-radius:50%;flex:none}.lg2 .un{color:#64748b;font-weight:500}
+.lg2 span:first-child{display:flex;align-items:center;gap:8px;color:var(--mu)}.lg2 em{width:10px;height:10px;border-radius:50%;flex:none}.lg2 .un{color:#8391a7;font-weight:500}
 .sug{padding:16px;border-radius:16px;background:rgba(192,132,252,.08);border:1px solid rgba(192,132,252,.35);margin-bottom:16px;font-size:14px}
 .sug>b{display:block;margin-bottom:6px}.sug .vals{font-weight:700;margin-bottom:6px}
 .sug summary{padding:8px 0;font-size:14px;font-weight:600;color:#d8b4fe}.sug details{border:0}.sug details p{padding:0 0 8px;font-size:14px;color:var(--mu);max-width:none}
@@ -142,7 +142,7 @@ const css=document.createElement('style');css.textContent=`
 document.head.append(css);
 
 /* ===== state ===== */
-let root,st,tab='home',cat='',nw='',invSec='ready',invH='',game=null,aiBusy=false,aiErr='',chatBusy=false,chatErr='';
+let root,st,tab='home',cat='',nw='',invSec='ready',invH='',spendBusy=false,game=null,aiBusy=false,aiErr='',chatBusy=false,chatErr='';
 const landChat={msgs:[],busy:false,err:'',n:0};
 const $=id=>document.getElementById(id);
 const sum=(a,f)=>a.reduce((x,y)=>x+f(y),0);
@@ -166,10 +166,13 @@ function pfSafe(){const o={};(pd().q||[]).forEach(q=>{if(q.t==='text')return;con
 const months=d=>{if(!d)return 1;const[y,m]=d.split('-').map(Number),n=new Date();return Math.max(1,(y-n.getFullYear())*12+m-(n.getMonth()+1))};
 const thisCycle=()=>st.cycles.find(c=>c.k===mk());
 const need=g=>g.s>=g.t?0:Math.round((g.t-g.s)/Math.max(1,months(g.d)-(thisCycle()?1:0)));
-const save=async()=>{SW.data.setup=st;await SW.save()};
+const save=async()=>{
+ if(st.chat&&st.chat.length>40)st.chat=st.chat.slice(-40); /* keep the vault small */
+ SW.data.setup=st;
+ try{await SW.save()}catch{toast('Could not save on this device. Storage may be full or blocked.',1)}};
 const dlabel=t=>{const d=new Date(t),n=new Date(),a=new Date(d.getFullYear(),d.getMonth(),d.getDate()),b=new Date(n.getFullYear(),n.getMonth(),n.getDate()),df=Math.round((b-a)/864e5);return df===0?'Today':df===1?'Yesterday':d.toLocaleDateString('en-IN',{day:'numeric',month:'short'})};
 function toast(t,bad){let x=$('tst');if(!x){x=document.createElement('div');x.id='tst';x.setAttribute('role','status');x.setAttribute('aria-live','polite');document.body.append(x)}
- x.textContent=t;x.className=bad?'bad':'';clearTimeout(toast.t);toast.t=setTimeout(()=>x.remove(),3200)}
+ x.setAttribute('role',bad?'alert':'status');x.textContent=t;x.className=bad?'bad':'';clearTimeout(toast.t);toast.t=setTimeout(()=>x.remove(),bad?7000:3200)}
 
 /* Plan numbers come only from what the user typed (rules) and what is calculated (bills, goals). */
 function plan(){
@@ -647,7 +650,7 @@ function tabMore(){
  <p class="fn">AI observations are based on recorded data and may be imperfect. This is general guidance, not regulated financial advice.</p></div>
  <div class="h3s">AI and privacy</div>
  <div class="cd"><b>${aiReady()?'AI is connected':'AI is not connected yet'}</b><p class="s2" style="margin-top:6px">When it is on, the AI only receives your numbers and choices: income, costs, goals and the multiple-choice answers in your profile. It never receives your name, email or anything you typed as free text. You choose whether to apply what it suggests.</p></div>
- <div class="h3s">Account</div><button class="btn gho" data-a="logout">Sign out</button>
+ <div class="h3s">Account</div><div class="row"><button class="btn gho" data-a="logout">Sign out</button><button class="btn gho" data-a="delacct" style="color:var(--rd)">Delete account</button></div>
  <p class="fn" style="margin-top:22px">SpendWise plans and tracks your money. It does not move real money between accounts. Your data is encrypted on this device.</p>`;
 }
 const navItems=()=>{const L=isL();return[['home','Home',I.home],['spends','Spends',I.spends],['plan',L?'Jars':'Plan',I.plan],['goals',L?'Dream':'Goals',I.goals],['ask','Ask',I.ask],['more','More',I.more]]};
@@ -676,7 +679,7 @@ function allocate(){
  if(isL()){st.learn.xp+=20;toast('Jars filled! +20 XP ⭐ You can spend '+R(p.safe)+' freely.')}else toast(mname()+' allocated. You can spend '+R(p.safe)+' freely.');
 }
 function addSpend(){
- const a=Math.round(+($('sa').value)||0),n=$('sn').value.trim().slice(0,60);
+ const a=Math.min(1e9,Math.round(+($('sa').value)||0)),n=$('sn').value.trim().slice(0,60);
  if(a<=0){toast('Enter the amount you spent.',1);$('sa').focus();return false}
  st.spends.push({id:Date.now()+'-'+Math.random().toString(36).slice(2,6),t:Date.now(),k:mk(),a,n,c:cat,w:isL()?nw:''});
  let xp='';if(isL()){const td=new Date().toDateString();if(st.learn.logged!==td){st.learn.logged=td;st.learn.xp+=5;xp=' +5 XP ⭐'}}
@@ -758,25 +761,30 @@ function start(r){
  if(!SW.data.profile){st.done=false;st.step=0}
  else if(isL()&&st.done&&!(st.learn.jars.s+st.learn.jars.v+st.learn.jars.d)){st.done=false;st.step=1}
  st.spends.forEach((s,i)=>{if(!s.id)s.id=s.t+'-'+i});
+ if(!window.__swFlush){window.__swFlush=1; /* save unsaved setup answers when the tab is hidden or closed */
+  const flush=()=>{if(st&&SW.data&&SW.key&&SW.user){SW.data.setup=st;SW.localWrite().catch(()=>{})}};
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flush()});addEventListener('pagehide',flush)}
+ if(window.SW_MEM)setTimeout(()=>toast('Your browser is blocking storage, so your data will be lost when you close this tab.',1),600);
  if(!root.dataset.b){root.dataset.b=1;
   root.addEventListener('input',e=>{const t=e.target;
    if(t.dataset.c){const[g,k]=t.dataset.c.split('.');st.inv[g][k]=t.value===''?'':+t.value;const o=$('ires');if(o)o.innerHTML=g==='sip'?sipRes():fdRes();return}
    if(t.dataset.r){const k=t.dataset.r,mx=k==='em'?24:50;st.rules[k]=t.value===''?null:Math.max(0,Math.min(mx,+t.value||0));fixTeen();refreshPlan();return}
-   const f=t.dataset.f;if(!f)return;const v=t.type==='number'?Math.max(0,+t.value||0):t.value;
+   const f=t.dataset.f;if(!f)return;const v=t.type==='number'?Math.min(1e9,Math.max(0,+t.value||0)):t.value;
    if(f.includes('.')){const[l,k]=f.split('.');if(t.dataset.i==null||t.dataset.i==='')st[l][k]=v;else st[l][+t.dataset.i][k]=v}else st[f]=v});
   root.addEventListener('change',e=>{const t=e.target;if(t.dataset.c)save();if(t.dataset.r){const v=st.rules[t.dataset.r];if(v!=null)t.value=v;save()}});
-  root.addEventListener('keydown',async e=>{if(e.key==='Enter'&&(e.target.id==='sa'||e.target.id==='sn')){e.preventDefault();if(addSpend()){await save();render()}}});
+  root.addEventListener('keydown',async e=>{if(e.key==='Enter'&&(e.target.id==='sa'||e.target.id==='sn')){e.preventDefault();if(spendBusy)return;spendBusy=true;try{if(addSpend()){await save();render()}}finally{spendBusy=false}}});
   root.addEventListener('click',async e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;
    if(a==='go'){tab=b.dataset.t;render();scrollTo(0,0);if(b.dataset.f&&$('sa'))$('sa').focus()}
    else if(a==='cat'){cat=cat===b.dataset.c?'':b.dataset.c;root.querySelectorAll('[data-a=cat]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.c===cat))}
-   else if(a==='spend'){if(addSpend()){await save();render()}}
-   else if(a==='delspend'){st.spends=st.spends.filter(s=>s.id!==b.dataset.id);await save();render();toast('Spend removed.')}
+   else if(a==='spend'){if(spendBusy)return;spendBusy=true;try{if(addSpend()){await save();render()}}finally{spendBusy=false}}
+   else if(a==='delspend'){if(!confirm('Delete this spend?'))return;st.spends=st.spends.filter(s=>s.id!==b.dataset.id);await save();render();toast('Spend removed.')}
    else if(a==='alloc'){allocate();await save();render()}
    else if(a==='ai')runAI();
    else if(a==='aiapply'){const s=st.sug;st.rules={e:s.e,i:s.i,em:s.em};st.sug=null;await save();render();toast('Rules updated. Review them, then allocate.')}
    else if(a==='aidismiss'){st.sug=null;await save();render()}
    else if(a==='weekly-statement'){makeWeeklyStatement()}
    else if(a==='logout')SW.logout();
+   else if(a==='delacct'){if(!confirm('Delete your account and all your SpendWise data? This cannot be undone.'))return;const ok=await SW.deleteAccount();if(!ok)toast('Could not delete the account right now. Check your connection and try again.',1)}
    else if(a==='isec'){invSec=b.dataset.s;rr()}
    else if(a==='hz'){invH=invH===b.dataset.k?'':b.dataset.k;rr()}
    else if(a==='sipuse'){st.inv.sip.m=plan().i;await save();rr()}
