@@ -210,6 +210,8 @@ footer{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 .spin{width:18px;height:18px;border-radius:50%;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;animation:sp .7s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
 .pn{text-align:center;padding:10px 0}.pn .big{font-size:42px}.pn h2{margin:10px 0 8px}.pn p{color:var(--mu);margin-bottom:20px}
 @media(max-width:760px){.pay{grid-template-columns:1fr}.pay .pc:first-child{order:2}}
+dialog{max-height:calc(100dvh - 32px);overflow-y:auto}dialog input[type=text]{width:100%;padding:14px;border-radius:12px;background:#030712;border:1px solid var(--line);color:#fff;font:inherit;margin-bottom:16px}dialog .row{margin-top:4px}
+.rcode{font:700 clamp(15px,4.4vw,19px)/1.6 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.05em;text-align:center;padding:16px;border-radius:14px;background:var(--bg);border:1px dashed rgba(52,211,153,.5);color:var(--em);word-break:break-word;margin:0 0 14px;user-select:all}
 </style>
 </head>
 <body>
@@ -246,7 +248,7 @@ footer{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 <button class="btn pri" data-open>Open the app <svg class="i"><use href="#up"/></svg></button>
 <a href="#how" class="btn gho">See how it works</a>
 </div>
-<p class="note"><svg class="i"><use href="#ok"/></svg>Free to start. Works in your browser and installs like an app.</p>
+<p class="note"><svg class="i"><use href="#ok"/></svg>Free to start. Works in your browser on any phone or computer.</p>
 </div>
 
 <div class="demo" aria-labelledby="dh">
@@ -296,7 +298,7 @@ footer{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 <div class="sh"><h2 class="t">Other apps show you what you did wrong. This one stops you first.</h2></div>
 <div class="cards">
 <div class="card c1"><div class="ico"><svg class="i"><use href="#br"/></svg></div><h3>Verdicts before purchases</h3><p>See how any purchase changes your safe-to-spend balance and your goal vaults, instantly.</p></div>
-<div class="card c2"><div class="ico"><svg class="i"><use href="#rf"/></svg></div><h3>Tracking that logs itself</h3><p>With Copilot, UPI and bank transactions sync automatically. No typing in every chai.</p></div>
+<div class="card c2"><div class="ico"><svg class="i"><use href="#rf"/></svg></div><h3>Fast manual tracking</h3><p>Log a spend in two taps. Automatic UPI and bank sync is planned for Copilot.</p></div>
 <div class="card c3"><div class="ico"><svg class="i"><use href="#tg"/></svg></div><h3>Goal vaults that do the math</h3><p>Tell it the trip, laptop or emergency fund. It calculates the monthly amount to get there on time.</p></div>
 </div>
 </div>
@@ -307,11 +309,11 @@ footer{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 <div class="sh"><h2 class="t">Start free. Upgrade when it pays off.</h2></div>
 <div class="price">
 <div class="plan"><h3>Core</h3><div class="pr">₹0</div><p>Everything you need to start.</p>
-<ul><li><svg class="i"><use href="#ok"/></svg>Real-time safe-to-spend balance</li><li><svg class="i"><use href="#ok"/></svg>Up to 2 goal vaults</li><li><svg class="i"><use href="#ok"/></svg>Monthly summaries</li><li><svg class="i"><use href="#ok"/></svg>Data stays on your device</li></ul>
+<ul><li><svg class="i"><use href="#ok"/></svg>Real-time safe-to-spend balance</li><li><svg class="i"><use href="#ok"/></svg>Up to 2 goal vaults</li><li><svg class="i"><use href="#ok"/></svg>Verdict before every purchase</li><li><svg class="i"><use href="#ok"/></svg>Encrypted backup and recovery code</li><li><svg class="i"><use href="#ok"/></svg>Data stays on your device</li></ul>
 <button class="btn gho" data-open>Start free</button></div>
-<div class="plan hot"><span class="tag">Most popular</span><h3>Copilot</h3><div class="pr">₹2,000<small> / year</small></div><p>About ₹167 a month.</p>
-<ul><li><svg class="i"><use href="#ok"/></svg>Automatic UPI and bank sync</li><li><svg class="i"><use href="#ok"/></svg>Unlimited goal vaults and emergency cushion</li><li><svg class="i"><use href="#ok"/></svg>Predictive AI verdicts</li><li><svg class="i"><use href="#ok"/></svg>Deep spending insights</li></ul>
-<button class="btn pri" data-open>Get Copilot</button></div>
+<div class="plan hot"><span class="tag">Coming soon</span><h3>Copilot</h3><div class="pr">₹2,000<small> / year</small></div><p>Planned price, about ₹167 a month. Not on sale yet.</p>
+<ul><li><svg class="i"><use href="#ok"/></svg>Unlimited goal vaults</li><li><svg class="i"><use href="#ok"/></svg>Automatic UPI and bank sync (planned)</li><li><svg class="i"><use href="#ok"/></svg>Predictive AI verdicts (planned)</li><li><svg class="i"><use href="#ok"/></svg>Deeper spending insights (planned)</li></ul>
+<button class="btn pri" data-open>Join the Copilot waitlist</button></div>
 </div>
 </div>
 </section>
@@ -336,7 +338,7 @@ footer{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 <div class="sh"><h2 class="t">Questions, answered.</h2></div>
 <details><summary>Who is SpendWise for?<svg class="i"><use href="#pl"/></svg></summary><p>Anyone whose money has to last: children learning the basics, teens, college students, working professionals, senior citizens, armed forces and All India Services officers, OCI cardholders and families relying on government schemes. Each gets a profile built around how they earn and spend.</p></details>
 <details><summary>Do I need to install anything?<svg class="i"><use href="#pl"/></svg></summary><p>No app store needed. SpendWise is a web app you open in your browser, and you can add it to your home screen to use it like a native app.</p></details>
-<details><summary>Is the free plan really free?<svg class="i"><use href="#pl"/></svg></summary><p>Yes. Core has no trial clock and no card required. Upgrade to Copilot only if you want automatic syncing and unlimited vaults.</p></details>
+<details><summary>Is the free plan really free?<svg class="i"><use href="#pl"/></svg></summary><p>Yes. Core has no trial clock and no card required. Copilot is not on sale yet. Join the waitlist and we will email you once, when it opens.</p></details>
 <details><summary>Where is my data kept?<svg class="i"><use href="#pl"/></svg></summary><p>On the free plan, your data is stored locally on your device. Copilot adds automatic bank and UPI syncing, which you choose to switch on.</p></details>
 </div>
 </section>
@@ -369,6 +371,7 @@ footer{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 <input id="ap" type="password" placeholder="Password (8+ characters)" autocomplete="current-password" required>
 <div class="er" id="aer" role="alert"></div>
 <button class="btn pri" id="asb" style="width:100%" type="submit">Sign in</button></form>
+<p class="lg" id="fpw" style="margin-top:10px"><button type="button" id="fp" style="color:var(--mu);text-decoration:underline;text-underline-offset:3px;padding:10px">Forgot your password?</button></p>
 <p class="lg">Your data is encrypted on this device with AES-256. We never sell it.</p>
 </div></section>
 <div id="app"><div class="atop"><a class="logo" href="#"><span class="mark"><svg class="i" style="stroke-width:2.6"><use href="#up"/></svg></span>SpendWise</a><button class="btn gho sm" id="lo">Sign out</button></div><div id="appRoot"></div></div>
@@ -496,6 +499,98 @@ const SW=window.SW={user:null,key:null,data:null,start:null,token:null,sync:'off
   clearSession();
   const us=jget('sw_users',{});delete us[em];LS.setItem('sw_users',JSON.stringify(us));LS.removeItem('sw_v_'+em);
   SW.user=SW.key=SW.data=SW.token=null;SW.sync='off';document.body.classList.remove('in');$('appRoot').innerHTML='';return true}};
+
+/* ===== small modal helper (native <dialog>: focus trap and Esc come built in) ===== */
+function modal(html,bind,locked){return new Promise(res=>{const d=document.createElement('dialog');d.innerHTML=html;document.body.append(d);
+ const done=v=>{try{d.close()}catch{}d.remove();res(v)};
+ d.addEventListener('cancel',e=>{e.preventDefault();if(!locked)done(null)});
+ d.showModal();bind(d,done)})}
+function askPass(title,msg,btn){
+ return modal(`<h2>${title}</h2><p>${msg}</p><label for="mp">Password</label><input id="mp" type="password" autocomplete="current-password"><div class="row"><button class="btn pri" id="mok" type="button" style="flex:1">${btn||'Continue'}</button><button class="btn gho" id="mno" type="button">Cancel</button></div>`,(d,done)=>{
+  const i=d.querySelector('#mp'),go=()=>{if(i.value)done(i.value)};
+  d.querySelector('#mok').onclick=go;d.querySelector('#mno').onclick=()=>done(null);
+  i.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();go()}});i.focus()})}
+SW.modal=modal;SW.askPass=askPass;
+const saveFile=(name,type,text)=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)};
+/* ===== F1: encrypted backup file. Protected by a password chosen at backup time, so it also works for Google sign-in users ===== */
+SW.backup=async()=>{
+ const pw=await askPass('Protect your backup','Choose a password for this backup file. You will need it to restore. It can be your SpendWise password or a new one.','Download backup');
+ if(!pw)return false;if(pw.length<8)return'short';
+ const salt=crypto.getRandomValues(new Uint8Array(16)),k=await dk(pw,salt);
+ const f={app:'spendwise',kind:'backup',v:1,at:Date.now(),email:SW.user.email,salt:b64(salt),...await seal(k,SW.data)};
+ saveFile('SpendWise-backup-'+new Date().toISOString().slice(0,10)+'.json','application/json',JSON.stringify(f));
+ SW.data.lastBackup=Date.now();await SW.save();return true};
+SW.restore=async file=>{
+ let f;try{f=JSON.parse(await file.text())}catch{return'bad'}
+ if(!f||f.app!=='spendwise'||f.kind!=='backup'||!f.iv||!f.d||!f.salt)return'bad';
+ const pw=await askPass('Open your backup','Enter the password you chose when you made this backup.','Restore');if(!pw)return'cancel';
+ let d;try{d=await unseal(await dk(pw,ub(f.salt)),f)}catch{return'pw'}
+ return d&&typeof d==='object'?{data:d,at:f.at}:'bad'};
+/* ===== F2: recovery code. A random code seals the account password, so a forgotten password can be reset on this device ===== */
+const RC_A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function newCode(){const b=crypto.getRandomValues(new Uint8Array(24));let s='';for(const x of b)s+=RC_A[x&31];return s.match(/.{4}/g).join('-')}
+const normCode=c=>String(c||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+async function setRecovery(email,pw){
+ const us=jget('sw_users',{}),u=us[email];if(!u)return null;
+ const code=newCode(),salt=crypto.getRandomValues(new Uint8Array(16)),k=await dk(normCode(code),salt);
+ u.rec={salt:b64(salt),...await seal(k,{pw})};us[email]=u;LS.setItem('sw_users',JSON.stringify(us));return code}
+function showCode(code,title){
+ return modal(`<h2>${title}</h2><p>If you forget your password, this code is the only way to get your data back. Nobody can reset it for you. Keep it in a password manager, or write it down somewhere safe.</p>
+<div class="rcode" id="rcc">${code}</div>
+<div class="row" style="margin-bottom:16px"><button class="btn gho sm" id="rcp" type="button">Copy</button><button class="btn gho sm" id="rcd" type="button">Download</button></div>
+<label style="display:flex;gap:10px;align-items:flex-start;font-weight:500;font-size:14px;margin-bottom:16px;cursor:pointer"><input id="rck" type="checkbox" style="margin-top:3px;width:18px;height:18px;accent-color:#34d399"> I have saved this code somewhere safe</label>
+<button class="btn pri" id="rcok" type="button" style="width:100%" disabled>Continue</button>`,(d,done)=>{
+  const q=s=>d.querySelector(s);
+  q('#rck').onchange=()=>{q('#rcok').disabled=!q('#rck').checked};
+  q('#rcp').onclick=async()=>{try{await navigator.clipboard.writeText(code);q('#rcp').textContent='Copied'}catch{q('#rcp').textContent='Copy it by hand'}};
+  q('#rcd').onclick=()=>saveFile('SpendWise-recovery-code.txt','text/plain','SpendWise recovery code\n\n'+code+'\n\nKeep this private. Anyone with this code and access to your device can reset your password.\n');
+  q('#rcok').onclick=()=>done(true);q('#rck').focus()},true)}
+SW.hasRecovery=()=>{const u=jget('sw_users',{})[SW.user&&SW.user.email];return!!(u&&u.rec)};
+SW.recovery=async()=>{
+ const email=SW.user&&SW.user.email;if(!email||SW.user.google)return'google';
+ const pw=await askPass('Confirm your password','Enter your password to create a new recovery code. Any older code stops working.','Create code');if(!pw)return'cancel';
+ const u=jget('sw_users',{})[email];
+ try{await unseal(await dk(pw,ub(u.salt)),u.ver)}catch{return'bad'}
+ const code=await setRecovery(email,pw);await showCode(code,'Save your recovery code');return'ok'};
+async function resetWithCode(email,code,np){
+ const us=jget('sw_users',{}),u=us[email];
+ if(!u)throw'There is no account with this email on this device. If you have a backup file, create the account again, then restore the backup from More.';
+ if(!u.rec)throw'This account has no recovery code, so the data cannot be recovered without the password.';
+ let pw;try{pw=(await unseal(await dk(normCode(code),ub(u.rec.salt)),u.rec)).pw}catch{throw'That recovery code is not right. Check it and try again.'}
+ let data;try{const old=await dk(pw,ub(u.salt));await unseal(old,u.ver);const v=jget('sw_v_'+email,null);data=v?await unseal(old,v):{profile:u.profile||'',name:u.name||''}}catch{throw'Could not open your saved data with this code.'}
+ const salt=crypto.getRandomValues(new Uint8Array(16)),key=await dk(np,salt),ver=await seal(key,{ok:1}),vault=await seal(key,data);
+ u.salt=b64(salt);u.ver=ver;delete u.rec;us[email]=u;
+ LS.setItem('sw_users',JSON.stringify(us));LS.setItem('sw_v_'+email,JSON.stringify(vault));clearSession();
+ return await setRecovery(email,np)}
+async function forgotFlow(email0){
+ const r=await modal(`<h2>Reset your password</h2><p>Enter the recovery code you saved when you made your account. This works on the device that holds your data.</p>
+<label for="fe">Email</label><input id="fe" type="email" autocomplete="email">
+<label for="fc">Recovery code</label><input id="fc" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX">
+<label for="fnp">New password</label><input id="fnp" type="password" autocomplete="new-password" placeholder="8+ characters">
+<div class="er" id="fer" role="alert"></div>
+<div class="row"><button class="btn pri" id="fok" type="button" style="flex:1">Reset password</button><button class="btn gho" id="fno" type="button">Cancel</button></div>`,(d,done)=>{
+  const q=s=>d.querySelector(s),er=t=>{q('#fer').textContent=t;q('#fer').classList.toggle('s',!!t)};
+  q('#fe').value=email0||'';
+  q('#fno').onclick=()=>done(null);
+  q('#fok').onclick=async()=>{
+   const em=q('#fe').value.trim().toLowerCase(),cd=q('#fc').value,np=q('#fnp').value;er('');
+   if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em))return er('Enter a valid email address.');
+   if(normCode(cd).length<24)return er('Enter the full recovery code.');
+   if(np.length<8)return er('Use at least 8 characters for your new password.');
+   const b=q('#fok');b.disabled=true;b.textContent='Resetting…';
+   try{const code=await resetWithCode(em,cd,np);done({email:em,np,code})}
+   catch(x){er(typeof x==='string'?x:'Something went wrong. Please try again.');b.disabled=false;b.textContent='Reset password'}}});
+ if(!r)return;
+ await showCode(r.code,'Your new recovery code');
+ try{await signIn(r.email,r.np)}catch(x){showErr(typeof x==='string'?x:'Could not sign in. Try again.')}}
+/* ===== F3: two tabs. Follow saves from the other tab, and sign out when the other tab signs out ===== */
+addEventListener('storage',async e=>{
+ if(!SW.user||!SW.key)return;
+ if(e.key==='sw_session'&&e.newValue===null){location.reload();return}
+ if(e.key==='sw_v_'+SW.user.email&&e.newValue){
+  try{const d=await unseal(SW.key,JSON.parse(e.newValue)),s=jget('sw_session',null);
+   if(SW.refresh)SW.refresh(d,(s&&s.tab)||'home')}catch{}}});
+
 /* ===== plan choice + demo checkout (UI only, nothing is charged, stored or sent) ===== */
 let ENTRY={src:'open'};
 const FL=()=>{let f=$('flow');if(!f){f=document.createElement('section');f.id='flow';f.setAttribute('role','dialog');f.setAttribute('aria-modal','true');document.body.append(f)}return f};
@@ -507,56 +602,58 @@ function gate(go){
  const done=async t=>{d.tier=t;try{await SW.save()}catch{}hideFlow();go()};
  if(!d.tier&&d.profile)d.tier='free';
  if(e.src==='pricing'&&e.tier==='free'&&!d.tier)return done('free');
- if(e.src==='pricing'&&e.tier==='paid'&&d.tier!=='paid')return payPage(done);
+ if(e.src==='pricing'&&e.tier==='paid'&&d.tier!=='paid')return waitlistPage(done);
  if(!d.tier)return tierPage(done);
  go()}
 function tierPage(done){
  const f=showFlow(`<h1>Choose your plan</h1><p class="fs">Start free and upgrade whenever you like.</p>
  <div class="price"><div class="plan"><h3>Core</h3><div class="pr">₹0</div><p>Everything you need to start.</p>
- <ul><li>${tick}Real-time safe-to-spend balance</li><li>${tick}Up to 2 goal vaults</li><li>${tick}Monthly summaries</li><li>${tick}Data stays on your device</li></ul>
+ <ul><li>${tick}Real-time safe-to-spend balance</li><li>${tick}Up to 2 goal vaults</li><li>${tick}Verdict before every purchase</li><li>${tick}Encrypted backup and recovery code</li><li>${tick}Data stays on your device</li></ul>
  <button class="btn gho" id="tf">Continue with Core</button></div>
- <div class="plan hot"><span class="tag">Most popular</span><h3>Copilot</h3><div class="pr">₹2,000<small> / year</small></div><p>About ₹167 a month.</p>
- <ul><li>${tick}Automatic UPI and bank sync</li><li>${tick}Unlimited goal vaults and emergency cushion</li><li>${tick}Predictive AI verdicts</li><li>${tick}Deep spending insights</li></ul>
- <button class="btn pri" id="tp">Choose Copilot</button></div></div>
+ <div class="plan hot"><span class="tag">Coming soon</span><h3>Copilot</h3><div class="pr">₹2,000<small> / year</small></div><p>Planned price, about ₹167 a month. Not on sale yet.</p>
+ <ul><li>${tick}Unlimited goal vaults</li><li>${tick}Automatic UPI and bank sync (planned)</li><li>${tick}Predictive AI verdicts (planned)</li><li>${tick}Deeper spending insights (planned)</li></ul>
+ <button class="btn pri" id="tp">Join the Copilot waitlist</button></div></div>
  <p class="fine" style="text-align:center;margin-top:18px;color:#8391a7;font-size:13px">No card needed for Core. No trial clock.</p>`,'Choose your plan');
- f.querySelector('#tf').onclick=()=>done('free');f.querySelector('#tp').onclick=()=>payPage(done,true)}
-function payPage(done,fromTiers){
- let meth='upi',bank='',busy=false;
- const f=showFlow('','Payment');
- const body=()=>{const m={upi:`<label for="pu">UPI ID</label><input id="pu" class="pi" placeholder="name@bank" autocomplete="off" inputmode="email" spellcheck="false">`,
-  card:`<label for="pn">Card number</label><input id="pn" class="pi" placeholder="1234 5678 9012 3456" autocomplete="off" inputmode="numeric" maxlength="19"><div class="r2"><div><label for="pe">Expiry</label><input id="pe" class="pi" placeholder="MM / YY" autocomplete="off" inputmode="numeric" maxlength="7"></div><div><label for="pv2">CVV</label><input id="pv2" class="pi" type="password" placeholder="•••" autocomplete="off" inputmode="numeric" maxlength="4"></div></div><label for="pa">Name on card</label><input id="pa" class="pi" placeholder="As printed on the card" autocomplete="off">`,
-  net:`<label>Choose your bank</label><div class="bk">${['State Bank of India','HDFC Bank','ICICI Bank','Axis Bank','Kotak Mahindra Bank','Other banks'].map(b=>`<button type="button" aria-pressed="${bank===b}" data-b="${b}">${b}</button>`).join('')}</div>`}[meth];
-  return`<h1>Complete your upgrade</h1><p class="fs">Copilot, billed yearly. Cancel any time.</p>
-  <div class="pay"><div class="pc"><h2>Order summary</h2><div class="ln"><span>Copilot, 1 year</span><b>₹2,000</b></div><div class="ln"><span>About per month</span><b>₹167</b></div><div class="ln t"><span>Total today</span><b>₹2,000</b></div>
-  <ul><li>${tick}Automatic UPI and bank sync</li><li>${tick}Unlimited goal vaults</li><li>${tick}Predictive AI verdicts</li></ul></div>
-  <div class="pc pf" id="pb"><h2>Payment method</h2><div class="pm" role="tablist">${[['upi','UPI'],['card','Card'],['net','Netbanking']].map(x=>`<button type="button" role="tab" aria-selected="${meth===x[0]}" data-m="${x[0]}">${x[1]}</button>`).join('')}</div>
-  <div>${m}</div><div class="er" id="pe2" role="alert"></div>
-  <button class="btn pri" id="pay" style="width:100%" type="button">Pay ₹2,000</button>
-  <button class="skip" id="fr" type="button" style="width:100%;margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:14px;color:#fff;font-weight:700;text-decoration:none">Continue with free for now</button>
-  <p class="sec"><svg class="i" style="flex:none;margin-top:2px"><use href="#ok"/></svg><span>Demo checkout. Nothing is charged, and what you type here is never stored or sent.</span></p></div></div>`};
- const draw=()=>{f.querySelector('.fw').innerHTML=f.querySelector('.fw .logo').outerHTML+body();bind()};
- const err=t=>{const e=f.querySelector('#pe2');e.textContent=t;e.classList.toggle('s',!!t)};
- const luhn=s=>{let n=0,alt=false;for(let i=s.length-1;i>=0;i--){let d=+s[i];if(alt){d*=2;if(d>9)d-=9}n+=d;alt=!alt}return n%10===0};
- const bind=()=>{
-  f.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{if(busy)return;meth=b.dataset.m;draw()});
-  f.querySelectorAll('[data-b]').forEach(b=>b.onclick=()=>{bank=b.dataset.b;draw()});
-  const pn=f.querySelector('#pn');if(pn)pn.oninput=()=>{pn.value=pn.value.replace(/\D/g,'').slice(0,16).replace(/(.{4})/g,'$1 ').trim()};
-  const pe=f.querySelector('#pe');if(pe)pe.oninput=()=>{let v=pe.value.replace(/\D/g,'').slice(0,4);pe.value=v.length>2?v.slice(0,2)+' / '+v.slice(2):v};
-  f.querySelector('#fr').onclick=()=>{if(!busy)done('free')};
-  f.querySelector('#pay').onclick=()=>{
-   if(busy)return;err('');const q=s=>(f.querySelector(s)||{}).value||'';
-   if(meth==='upi'&&!/^[\w.\-]{2,}@[a-z]{2,}$/i.test(q('#pu').trim()))return err('Enter a valid UPI ID, like name@bank.');
-   if(meth==='card'){const n=q('#pn').replace(/\s/g,'');if(n.length<16||!luhn(n))return err('Check the card number.');
-    const ex=q('#pe').replace(/\D/g,''),mo=+ex.slice(0,2);if(ex.length<4||mo<1||mo>12)return err('Enter the expiry as MM / YY.');
-    if(q('#pv2').length<3)return err('Enter the 3 or 4 digit CVV.');if(q('#pa').trim().length<2)return err('Enter the name on the card.')}
-   if(meth==='net'&&!bank)return err('Choose your bank.');
-   busy=true;const b=f.querySelector('#pay');b.disabled=true;b.innerHTML='<span class="spin"></span> Processing…';
-   setTimeout(()=>{f.querySelector('#pb').innerHTML=`<div class="pn"><div class="big">🕒</div><h2>Payments open soon</h2><p>Copilot is not switched on yet, so nothing was charged. You are on Core for now, and we have noted your interest.</p><button class="btn pri" id="go" style="width:100%">Continue with free</button></div>`;
-    f.querySelector('#go').onclick=()=>{SW.data.interest='copilot';if(SW.token)api('/account/interest',{method:'POST',body:{interest:'copilot'}});done('free')};f.querySelector('#go').focus()},1800)}};
- draw()}
-SW.upgrade=()=>payPage(async t=>{if(SW.data.tier!=='paid')SW.data.tier=t;try{await SW.save()}catch{}hideFlow()},false);
+ f.querySelector('#tf').onclick=()=>done('free');f.querySelector('#tp').onclick=()=>waitlistPage(done)}
+/* ===== F9: Copilot waitlist. Replaces the fake checkout: no card, UPI or bank details are collected ===== */
+const WL_KEY='sw_wl';
+async function wlSend(item){
+ const base=SW.waitlistUrl;if(!base)return{ok:false,status:0};
+ const c=new AbortController(),t=setTimeout(()=>c.abort(),10000);
+ try{const r=await fetch(base,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item),signal:c.signal});return{ok:r.ok,status:r.status}}
+ catch{return{ok:false,status:0}}finally{clearTimeout(t)}}
+async function wlFlush(){ /* send any signups that could not be sent earlier */
+ const q=jget(WL_KEY,[]);if(!q.length||!SW.waitlistUrl)return;
+ const keep=[];for(const it of q){const r=await wlSend(it);if(!(r.ok||r.status===400))keep.push(it)}
+ try{keep.length?LS.setItem(WL_KEY,JSON.stringify(keep)):LS.removeItem(WL_KEY)}catch{}}
+function waitlistPage(done){
+ const f=showFlow(`<h1>Join the Copilot waitlist</h1><p class="fs">Copilot is not on sale yet, so nothing is charged and no card details are needed. Leave your email and we will tell you when it opens.</p>
+ <div class="pay"><div class="pc"><h2>What Copilot adds</h2><ul><li>${tick}Unlimited goal vaults</li><li>${tick}Automatic UPI and bank sync (planned)</li><li>${tick}Predictive AI verdicts (planned)</li><li>${tick}Deeper spending insights (planned)</li></ul></div>
+ <div class="pc pf" id="pb"><h2>Your email</h2><label for="we">Email</label><input id="we" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com">
+ <label style="display:flex;gap:10px;align-items:flex-start;font-weight:500;font-size:14px;margin:2px 0 16px;cursor:pointer"><input id="wc" type="checkbox" style="width:18px;height:18px;padding:0;margin:3px 0 0;flex:none;accent-color:#34d399"> Email me once, when Copilot launches. I can ask to be removed at any time.</label>
+ <div class="er" id="wer" role="alert"></div>
+ <button class="btn pri" id="wj" type="button" style="width:100%">Join the waitlist</button>
+ <button class="skip" id="wf" type="button" style="width:100%;margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:14px;color:#fff;font-weight:700;text-decoration:none">Continue with Core for now</button>
+ <p class="sec"><svg class="i" style="flex:none;margin-top:2px"><use href="#ok"/></svg><span>We use your email only for this one message and never share it.</span></p></div></div>`,'Copilot waitlist');
+ const q=s=>f.querySelector(s),er=t=>{q('#wer').textContent=t;q('#wer').classList.toggle('s',!!t)};
+ q('#we').value=(SW.user&&SW.user.email)||'';
+ q('#wf').onclick=()=>done('free');
+ q('#wj').onclick=async()=>{
+  er('');const email=q('#we').value.trim().toLowerCase();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))return er('Enter a valid email address.');
+  if(!q('#wc').checked)return er('Tick the box to say we may email you about the launch.');
+  const b=q('#wj');b.disabled=true;b.innerHTML='<span class="spin"></span> Joining…';
+  const item={email,plan:'copilot',consent:true,at:Date.now()},r=await wlSend(item);
+  if(r.status===400){b.disabled=false;b.textContent='Join the waitlist';return er('That email does not look right.')}
+  const sent=r.ok;
+  if(!sent){const qd=jget(WL_KEY,[]).filter(x=>x.email!==email);qd.push(item);try{LS.setItem(WL_KEY,JSON.stringify(qd.slice(-10)))}catch{}}
+  if(SW.data){SW.data.waitlisted=true;SW.data.interest='copilot';try{await SW.save()}catch{}}
+  q('#pb').innerHTML=`<div class="pn"><div class="big">${sent?'🎉':'📨'}</div><h2>${sent?'You are on the list':'Saved on this device'}</h2><p>${sent?'We will email you once, when Copilot opens. Nothing was charged.':'We could not reach the waitlist just now. Your request is kept on this device and will be sent the next time SpendWise opens with a connection.'}</p><button class="btn pri" id="go" style="width:100%">Continue</button></div>`;
+  q('#go').onclick=()=>done('free');q('#go').focus()}}
+SW.upgrade=()=>waitlistPage(()=>hideFlow());
 function begin(user,key,data){
  SW.user=user;SW.key=key;SW.data=data;closeAuth();saveSession();
+ try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch{} /* ask the browser not to evict this data */
  gate(()=>{document.body.classList.add('in');scrollTo(0,0);beginApp(user,data);SW.setSync(SW.token?'pending':'off');if(SW.token)SW.push()})}
 function beginApp(user,data){
  if(SW.start)SW.start($('appRoot'));
@@ -583,7 +680,9 @@ async function signUp(name,email,pw){
  else if(r.status===409)throw'An account with this email already exists. Try signing in.';
  else if(r.status>0&&r.status<500)throw errMsg(r,'Could not create your account.');
  const key=await makeLocal(email,name,pw),data={profile:'',name,created:Date.now()};
- SW.user={email,name};SW.key=key;SW.data=data;await SW.save();begin({email,name},key,data)}
+ SW.user={email,name};SW.key=key;SW.data=data;await SW.save();
+ try{const rc=await setRecovery(email,pw);if(rc)await showCode(rc,'Save your recovery code')}catch{}
+ begin({email,name},key,data)}
 async function signIn(email,pw){
  const local=jget('sw_users',{})[email];let cloud=null,migrate=false;
  const s=await api('/auth/salt',{method:'POST',body:{email}});
@@ -598,7 +697,7 @@ async function signIn(email,pw){
  if(!key){ if(!cloud)throw'Wrong password.'; key=await makeLocal(email,(cloud.account&&cloud.account.name)||name,pw);name=(cloud.account&&cloud.account.name)||name}
  if(migrate){ /* an account that so far exists only on this device: move it to the cloud */
   const salt=crypto.getRandomValues(new Uint8Array(16)),r=await api('/auth/signup',{method:'POST',body:{email,name,salt:b64(salt),proof:await proofFor(pw,b64(salt))}});
-  if(r.status===409)throw'Wrong email or password.';
+  /* 409: the cloud copy has another password (for example after a recovery reset here). Keep working on this device. */
   if(r.ok){cloud={token:r.data.token,account:r.data.account}}}
  SW.token=cloud?cloud.token:null;
  const fallback={profile:(local&&local.profile)||'',name};
@@ -629,7 +728,7 @@ function setMode(m){mode=m;const up=m==='up';
  $('ti').setAttribute('aria-selected',!up);$('tu').setAttribute('aria-selected',up);
  $('an').hidden=!up;$('ap').autocomplete=up?'new-password':'current-password';
  $('ah').textContent=up?'Create your account':'Welcome back';$('as').textContent=up?'Free to start. You will pick your profile on the next screen.':'Sign in to open your dashboard.';
- $('asb').textContent=up?'Create account':'Sign in';showErr()}
+ $('asb').textContent=up?'Create account':'Sign in';$('fpw').hidden=up;showErr()}
 function openAuth(m){mn.classList.remove('o');setMode(m);au.classList.add('o');document.body.style.overflow='hidden';setTimeout(()=>$(m==='up'?'an':'ae').focus(),50)}
 function closeAuth(){au.classList.remove('o');document.body.style.overflow=''}
 document.querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>{const t=b.textContent;ENTRY=b.closest('#pricing')?{src:'pricing',tier:/copilot/i.test(t)?'paid':'free'}:{src:'open'};openAuth(/start|copilot|choose/i.test(t)?'up':'in')}));
@@ -637,6 +736,7 @@ $('ti').onclick=()=>setMode('in');$('tu').onclick=()=>setMode('up');$('ax').oncl
 au.addEventListener('click',e=>{if(e.target===au)closeAuth()});
 addEventListener('keydown',e=>{if(e.key==='Escape'&&au.classList.contains('o'))closeAuth()});
 $('lo').onclick=()=>SW.logout();
+$('fp').onclick=()=>forgotFlow($('ae').value.trim().toLowerCase());
 af.addEventListener('submit',async e=>{
  e.preventDefault();showErr();
  const email=$('ae').value.trim().toLowerCase(),pw=$('ap').value,name=$('an').value.trim();

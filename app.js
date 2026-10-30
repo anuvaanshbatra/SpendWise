@@ -5,6 +5,8 @@
    DIRECT_KEY : TESTING ONLY. A key placed here is visible to everyone who opens the site. Never publish it. */
 const AI_CONFIG={ENDPOINT:'https://ai-proxy-worker.spendwise-main.workers.dev',MODEL:'nvidia/nemotron-3-ultra-550b-a55b:free',DIRECT_KEY:''};
 const aiReady=()=>!!AI_CONFIG.ENDPOINT||!!(AI_CONFIG.DIRECT_KEY&&AI_CONFIG.MODEL);
+/* Where the Copilot waitlist is posted. Change it if the route lives on another worker. */
+if(window.SW)SW.waitlistUrl=AI_CONFIG.ENDPOINT?AI_CONFIG.ENDPOINT.replace(/\/$/,'')+'/waitlist':'';
 
 const R=n=>(n<0?'-':'')+'₹'+Math.abs(Math.round(n)).toLocaleString('en-IN');
 const E=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -142,17 +144,17 @@ const css=document.createElement('style');css.textContent=`
 document.head.append(css);
 
 /* ===== state ===== */
-let root,st,tab='home',cat='',nw='',invSec='ready',invH='',spendBusy=false,game=null,aiBusy=false,aiErr='',chatBusy=false,chatErr='';
+let root,st,tab='home',cat='',nw='',invSec='ready',invH='',spendBusy=false,vamt=0,scur='INR',fxBusy=false,game=null,aiBusy=false,aiErr='',chatBusy=false,chatErr='';
 const landChat={msgs:[],busy:false,err:'',n:0};
 const $=id=>document.getElementById(id);
 const sum=(a,f)=>a.reduce((x,y)=>x+f(y),0);
 const mk=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')};
 const mname=()=>new Date().toLocaleString('en-IN',{month:'long',year:'numeric'});
-const blank=()=>({v:4,step:0,income:0,savings:0,debt:0,dependents:0,fixed:[],goals:[],done:false,rules:{e:null,i:null,em:null},cycles:[],spends:[],sug:null,pf:{},learn:{xp:0,jars:{s:0,v:0,d:0}},inv:{sip:{},fd:{},tx:{}}});
+const blank=()=>({v:4,step:0,income:0,savings:0,debt:0,dependents:0,fixed:[],goals:[],done:false,rules:{e:null,i:null,em:null},cycles:[],spends:[],sug:null,pf:{},learn:{xp:0,jars:{s:0,v:0,d:0}},inv:{sip:{},fd:{},tx:{},loan:{}},fx:{rates:{}}});
 
 /* ===== profile helpers (content lives in profiles.js) ===== */
 const SP=()=>window.SW_PROFILES||{order:[]},SL=()=>window.SW_LEARN||{dreams:[],levels:['Saver'],jars:{},whys:[],items:[]};
-const prof=()=>(SW.data&&SW.data.profile)||'',pd=()=>SP()[prof()]||{},isL=()=>prof()==='Learner',isT=()=>prof()==='Teen',isW=()=>prof()==='Working professional';
+const prof=()=>(SW.data&&SW.data.profile)||'',pd=()=>SP()[prof()]||{},isL=()=>prof()==='Learner',isT=()=>prof()==='Teen',isW=()=>prof()==='Working professional',isO=()=>prof()==='OCI';
 /* Teens have no investing bucket, so it is fixed at 0 (not a default split: the Save % stays theirs to type) */
 const fixTeen=()=>{if(isT())st.rules.i=0};
 const fxP=()=>pd().fx||FX,gpP=()=>pd().gp||GP,catP=()=>pd().cats||CAT,incLabel=()=>pd().inc||IN[prof()]||'Monthly income';
@@ -288,6 +290,87 @@ function rows(ev){return'<div class="fl">'+ev.map(e=>`<div><span>${E(e.x)}<small
 
 /* ===== tabs ===== */
 function tabHome(){return isL()?tabHomeL():isT()?tabHomeT():tabHomeG()}
+/* ===== F8: verdict before you buy ===== */
+const GOAL_LIMIT=2,CURS=['USD','GBP','EUR','CAD','AUD','AED','SGD','NZD','CHF','JPY'];
+const daysLeft=()=>{const d=new Date();return Math.max(1,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()-d.getDate()+1)};
+function verdictHTML(){
+ const a=Math.round(vamt||0),m=money(),L=isL(),p=m.p;
+ if(!(a>0))return'<p class="fn" style="margin:0">Type a price to see the verdict.</p>';
+ if(m.safeNow==null)return`<div class="verd a"><span class="ic">!</span><div><strong>Set your plan first</strong><p>${L?'Fill your jars first':'Set your allocation rules in Plan first'}, so SpendWise knows what is safe to spend.</p></div></div>`;
+ const left=m.safeNow,after=left-a,days=daysLeft(),jar=L?'Spend jar':'safe-to-spend money',note=m.cy?'':' This uses your plan. Allocate the month to lock it in.';
+ let c,i,t,d;
+ if(left<=0){c='r';i='✕';t='Not this month.';d=`Your ${jar} is already used up.`}
+ else if(a<=left*.35){c='g';i='✓';t='Go ahead.';d=`You would still have ${R(after)} left, about ${R(after/days)} a day for ${days} more day${days>1?'s':''}.`}
+ else if(a<=left){c='a';i='!';t='Think twice.';d=`It fits, but only ${R(after)} would be left, about ${R(after/days)} a day for the rest of the month.`}
+ else{c='r';i='✕';t='Not this month.';const over=a-left;d=`That is ${R(over)} more than your ${jar}.`+(p.rq>0?` Paying it from goal money would delay your goals by about ${Math.ceil(over/(p.rq/30))} days.`:' It would have to come out of your savings.')}
+ const btn=c!=='r'?'<button class="btn gho sm" style="margin-top:10px" data-a="vlog">Log it as a spend</button>':'';
+ return`<div class="verd ${c}"><span class="ic">${i}</span><div><strong>${t}</strong><p>${d}${note}</p>${btn}</div></div>`}
+const verdictTile=()=>`<div class="tl" style="margin-top:10px;grid-template-columns:1fr"><button data-a="go" data-t="spends" data-v="1"><span class="ti">🤔</span>${isL()?'Can I buy it? Check your Spend jar':'Can I afford it? Check before you buy'}</button></div>`;
+const fxTile=()=>`<div class="tl" style="margin-top:10px;grid-template-columns:1fr"><button data-a="go" data-t="fx"><span class="ti">💱</span>Currency calculator</button></div>`;
+/* ===== F13: foreign currency for OCI, and the currency calculator ===== */
+const fxCur=()=>st.fx.cur||((st.pf||{}).cur)||'USD';
+const fxRate=c=>((st.fx.rates||{})[c]||{}).r||0;
+const fnum=(n,d=2)=>Number(n).toLocaleString('en-IN',{maximumFractionDigits:d});
+async function getRate(c){
+ if(fxBusy)return;fxBusy=true;
+ try{const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),8000);
+  const r=await fetch('https://open.er-api.com/v6/latest/'+encodeURIComponent(c),{signal:ctl.signal});clearTimeout(to);
+  const j=await r.json(),v=j&&j.rates&&+j.rates.INR;if(!(v>0))throw 0;
+  st.fx.rates[c]={r:Math.round(v*100)/100,at:Date.now(),live:1};await save();toast('Rate updated: 1 '+c+' = ₹'+st.fx.rates[c].r);
+  if(tab==='fx')rr();else{const e=$('sr');if(e)e.value=st.fx.rates[c].r}}
+ catch{toast('Could not fetch the rate. Type it in yourself.',1)}
+ fxBusy=false}
+function fxRes(){
+ const c=fxCur(),r=fxRate(c),a=+st.fx.amt||0,dir=st.fx.dir||'toinr',sup=+((st.pf||{}).sup)||0;
+ if(!(r>0))return'<p class="fn">Enter the rate, or tap Get today\'s rate.</p>';
+ if(!(a>0))return'<p class="fn">Enter an amount.</p>';
+ const row=(l,v,cls)=>`<div><span>${l}</span><b class="${cls||''}">${v}</b></div>`;
+ const out=[[-3,'If the rate falls 3%'],[0,'At today\'s rate'],[3,'If the rate rises 3%']].map(([pc,l])=>{const q=r*(1+pc/100);
+  return dir==='toinr'?row(l+' (₹'+fnum(q)+')','₹'+fnum(a*q,0),pc===0?'pos':''):row(l+' (₹'+fnum(q)+')',c+' '+fnum(a/q),pc===0?'pos':'')}).join('');
+ return`<div class="fl">${out}</div>`+(sup>0?`<div class="fp" style="margin-top:12px"><b>Your monthly family support</b><p>${R(sup)} a month costs about ${c} ${fnum(sup/r)} at this rate.</p></div>`:'')+
+ '<p class="fn">A lower rate means each unit of your currency buys fewer rupees. Your bank or transfer service uses its own rate and adds fees, so treat this as a guide.</p>'}
+function tabFx(){
+ const c=fxCur(),r=st.fx.rates[c]||{},dir=st.fx.dir||'toinr',ctry=(st.pf||{}).ctry;
+ const opts=[...new Set([...CURS,c])];
+ return`<button class="btn gho sm" data-a="go" data-t="home">← Back</button><h2 style="margin-top:16px">Currency calculator</h2><p class="sub">Convert between rupees and ${E(c)}${ctry?' for life in '+E(ctry):''}. Rates move every day, so check before you send money.</p>
+ <div class="cd"><label for="fcur">Currency</label><select id="fcur" data-fx="cur">${opts.map(x=>`<option${x===c?' selected':''}>${x}</option>`).join('')}</select>
+ <label for="fr">Rupees per 1 ${E(c)}</label><input id="fr" data-fx="rate" type="number" inputmode="decimal" min="0" step="0.01" value="${r.r||''}" placeholder="e.g. 105">
+ <div class="row" style="margin:-4px 0 14px;align-items:center"><button class="btn gho sm" type="button" data-a="getrate">Get today's rate</button><span class="fn" style="margin:0">${r.at?(r.live?'Live rate from ':'Typed in on ')+new Date(r.at).toLocaleDateString('en-IN'):'No rate yet'}</span></div>
+ <div class="cats" role="group" aria-label="Direction"><button type="button" class="chip" data-a="fxdir" data-v="toinr" aria-pressed="${dir==='toinr'}">${E(c)} → ₹</button><button type="button" class="chip" data-a="fxdir" data-v="frominr" aria-pressed="${dir==='frominr'}">₹ → ${E(c)}</button></div>
+ <label for="fa">Amount in ${dir==='toinr'?E(c):'₹'}</label><input id="fa" data-fx="amt" type="number" inputmode="decimal" min="0" value="${st.fx.amt||''}" placeholder="0">
+ <div id="fres" style="margin-top:6px">${fxRes()}</div></div>
+ <p class="fn">Live rates by <a href="https://www.exchangerate-api.com" target="_blank" rel="noopener" style="text-decoration:underline">ExchangeRate-API</a>. If the live rate cannot load, type the rate in yourself.</p>`}
+function curRow(){return`<label for="sc">Currency</label><select id="sc">${['INR',...CURS].map(x=>`<option${scur===x?' selected':''}>${x}</option>`).join('')}</select>
+ <div id="srw"${scur==='INR'?' hidden':''}><label for="sr" id="srl">Rupees per 1 ${E(scur)}</label><input id="sr" type="number" inputmode="decimal" min="0" step="0.01" value="${fxRate(scur)||''}" placeholder="e.g. 105">
+ <div class="row" style="margin:-4px 0 14px"><button class="btn gho sm" type="button" data-a="getrate">Get today's rate</button></div></div>`}
+/* ===== F14: use the profile answers that were only being collected ===== */
+const mdiff=ym=>{const[y,m]=String(ym).split('-').map(Number);if(!y||!m)return null;const n=new Date();return(y-n.getFullYear())*12+m-(n.getMonth()+1)};
+function loanRes(){
+ const l=st.inv.loan||{},P=+(st.pf||{}).eduloan||0,y=+l.y,r=+l.r;
+ if(!(P>0))return'';
+ if(!(y>0)||l.r===''||l.r==null||!(r>=0))return'<p class="fn">Enter the interest rate and how many years you will take to repay.</p>';
+ const n=Math.round(y*12),i=r/1200,emi=i>0?P*i/(1-Math.pow(1+i,-n)):P/n,tot=emi*n;
+ return`<div class="fl"><div><span>Monthly EMI</span><b class="pos">${R(emi)}</b></div><div><span>You repay in total</span><b>${R(tot)}</b></div><div><span>Of which interest</span><b>${R(tot-P)}</b></div>${st.income>0?`<div><span>EMI as a share of income</span><b>${Math.round(emi/st.income*100)}%</b></div>`:''}</div><p class="fn">An estimate that starts from the amount you owe today. Interest can build up before repayment starts, so check your lender's terms.</p>`}
+function insightCards(){
+ const pf=st.pf||{},p=plan(),m=money(),P=prof(),out=[],card=(t,b)=>`<div class="fp"><b>${E(t)}</b><p>${b}</p></div>`;
+ const plural=n=>n+' month'+(n===1?'':'s');
+ if(P==='Young adult'&&+pf.eduloan>0){
+  const n=pf.repay?mdiff(pf.repay):null,l=st.inv.loan||{};
+  out.push(`<div class="cd" style="margin-bottom:10px"><b>Your education loan</b><p class="s2" style="margin:6px 0 14px">You owe ${R(+pf.eduloan)}. ${n==null?'Add the month repayment starts in Edit setup to see a countdown.':n>0?'Repayment starts in about '+plural(n)+'.':'Repayment has started, or starts this month.'}</p>
+  <label for="ln-r">Interest rate (% a year)</label><input id="ln-r" data-c="loan.r" type="number" inputmode="decimal" min="0" max="30" step="0.1" value="${l.r??''}" placeholder="From your loan papers">
+  <label for="ln-y">Years to repay</label><input id="ln-y" data-c="loan.y" type="number" inputmode="decimal" min="0" max="30" value="${l.y??''}" placeholder="e.g. 10">
+  <div id="ires">${loanRes()}</div></div>`)}
+ const k=P==='Armed forces'?'post':P==='All India Services'?'transfer':null;
+ if(k&&pf[k]){const n=mdiff(pf[k]),what=k==='post'?'posting':'transfer';
+  out.push(card('Your next '+what,n==null?'':n>0?`Expected in about ${plural(n)}. A move often means paying for two homes for a few weeks. ${p.fx>0?`Setting aside ${R(Math.ceil(p.fx/n))} a month would build one month of fixed costs (${R(p.fx)}) by then.`:'Add your fixed costs in Edit setup to size a buffer.'}`:`That month has arrived or passed. Update the date in Edit setup so your buffer plan stays current.`))}
+ if(P==='OCI'){const sup=+pf.sup||0,c=fxCur(),r=fxRate(c);
+  if(sup>0)out.push(card('Family support in India',`${R(sup)} a month${st.income>0?`, about ${Math.round(sup/st.income*100)}% of your India income`:''}.${r>0?` At today's rate that is about ${c} ${fnum(sup/r)}.`:' Set a rate in the currency calculator to see it in '+E(c)+'.'}`))}
+ if(P==='BPL family'){const hh=+pf.hh||0,sch=Array.isArray(pf.sch)?pf.sch:[],q=((pd().q||[]).find(x=>x.k==='sch')||{}).o||[],miss=q.filter(x=>!sch.includes(x));
+  if(hh>0&&st.income>0)out.push(card('Income per person',`Your household income works out to about ${R(st.income/hh)} per person a month, or ${R(st.income/hh/30)} a day.`));
+  if(miss.length)out.push(card('Support you may not be claiming',`You did not tick: ${miss.map(E).join(', ')}. Eligibility depends on your state and your family, so ask at your nearest Common Service Centre. Never pay anyone to approve a benefit.`))}
+ if(P==='Senior citizen'&&+pf.med>0){const med=+pf.med;
+  out.push(card('Medical money',`You spend about ${R(med)} a month on medicines and doctors${st.income>0?', '+Math.round(med/st.income*100)+'% of your income':''}. A year of that is ${R(med*12)}, and many families keep about that much in a separate medical reserve.${m.emerg>0?` Your savings and emergency fund stand at ${R(m.emerg)}.`:''}`))}
+ return out.length?'<div class="h3s">Your numbers</div>'+out.join(''):''}
 function tabHomeG(){
  const m=money(),p=m.p,cy=m.cy,first=(SW.user.name||'there').split(' ')[0],neg=m.safeNow!=null&&m.safeNow<0;
  const left=m.pool>0&&m.safeNow!=null?Math.max(0,m.safeNow/m.pool*100):0;
@@ -299,10 +382,11 @@ function tabHomeG(){
  <p>${cy?`${R(m.spentM)} spent of ${R(m.pool)} this month`:p.ready?'Planned for '+mname()+'. Allocate when your income arrives.':'Enter your allocation rules to see how much you can spend.'}</p>
  <div class="hb">${cta}</div></div>
  <div class="tl"><button data-a="go" data-t="spends" data-f="1"><span class="ti">${I.plus}</span>Add spend</button><button data-a="go" data-t="plan"><span class="ti">${I.plan}</span>Allocate</button><button data-a="go" data-t="plan"><span class="ti">${I.spark}</span>AI plan</button><button data-a="go" data-t="goals"><span class="ti">${I.goals}</span>Goals</button></div>
- <div class="tl" style="margin-top:10px;grid-template-columns:1fr"><button data-a="go" data-t="ask"><span class="ti">${I.ask}</span>Ask the advisor how to plan ahead</button></div>${isW()?invTile():''}
+ <div class="tl" style="margin-top:10px;grid-template-columns:1fr"><button data-a="go" data-t="ask"><span class="ti">${I.ask}</span>Ask the advisor how to plan ahead</button></div>${verdictTile()}${isO()?fxTile():''}${isW()?invTile():''}
  <div class="h3s">This month</div>
  <div class="st3"><div><small>Income</small><b>${R(st.income)}</b></div><div><small>Committed</small><b>${R(p.fx+p.rq)}</b></div><div><small>Spent</small><b>${R(m.spentM)}</b></div></div>
  <div class="h3s">Recent</div>${ev.length?rows(ev)+'<div style="margin-top:12px"><button class="btn gho sm" data-a="go" data-t="spends">See all spends</button></div>':'<div class="em">Nothing yet. Add your first spend and it will show up here.</div>'}
+${insightCards()}
  ${tipsHTML()}`;
 }
 
@@ -332,7 +416,7 @@ function tabHomeL(){
  <div class="hc ${sp!=null&&sp<0?'neg':''}"><small>${J.s.ic} Spend jar ${cy?'right now':'(planned)'}</small><b>${sp==null?'₹ —':R(sp)}</b>
  ${sp!=null&&m.pool>0?`<div class="pb" style="--c:${left<25?'var(--am)':'var(--em)'}"><i style="width:${left}%"></i></div>`:''}
  <p>${cy?`${R(m.spentM)} spent so far. When this jar is empty, you wait until next month!`:'Your pocket money is not split yet. Fill your jars to start.'}</p><div class="hb">${cta}</div></div>
- <div class="h3s">Your jars</div>${jar3()}
+ ${verdictTile()}<div class="h3s">Your jars</div>${jar3()}
  <div class="h3s">Your dream</div>${dreamCard()||'<div class="em">No dream yet.</div>'}
  <div class="h3s">Today’s game</div><div id="gm">${gameHTML()}</div>
  <div class="h3s">Why are we doing this?</div>${whysHTML()}`;
@@ -374,7 +458,7 @@ function tabHomeT(){
  <div class="hc ${neg?'neg':''}"><small>Left to spend</small><b>${m.safeNow==null?'₹ —':R(m.safeNow)}</b>
  ${m.pool>0&&m.safeNow!=null?`<div class="pb" style="--c:${neg?'var(--rd)':left<25?'var(--am)':'var(--em)'}"><i style="width:${left}%"></i></div>`:''}
  <p>${cy?R(m.spentM)+' spent this month':p.ready?'Tap Money in when it lands.':'Pick how much to save.'}</p><div class="hb">${cta}</div></div>
- <div class="tt3"><button data-a="go" data-t="spends" data-f="1"><span>➕</span>Spend</button><button data-a="go" data-t="plan"><span>💰</span>Save</button><button data-a="go" data-t="goals"><span>🎯</span>Goals</button></div>
+ <div class="tt3"><button data-a="go" data-t="spends" data-f="1"><span>➕</span>Spend</button><button data-a="go" data-t="plan"><span>💰</span>Save</button><button data-a="go" data-t="goals"><span>🎯</span>Goals</button></div>${verdictTile()}
  <div class="h3s">Recent</div>${ev.length?rows(ev):'<div class="em">Nothing yet.</div>'}
  ${tipsHTML()}`;
 }
@@ -448,11 +532,12 @@ function tabSpends(){
  const m=money(),list=[...st.spends].sort((a,b)=>b.t-a.t).slice(0,60),groups=[];
  list.forEach(s=>{const l=dlabel(s.t);let g=groups[groups.length-1];if(!g||g.l!==l){g={l,items:[]};groups.push(g)}g.items.push(s)});
  return`<h2>Spends</h2><p class="sub">${R(m.spentM)} spent in ${mname()}</p>${isL()?nwSummary():''}
- <div class="cd"><label for="sa">Amount (₹)</label><input id="sa" type="number" inputmode="numeric" min="0" placeholder="0">
+ <div class="cd" style="margin-bottom:14px"><label for="va">${isL()?'Want to buy something? Check your Spend jar first':'Thinking of buying something? Check first'}</label><input id="va" type="number" inputmode="numeric" min="0" placeholder="Price in ₹" value="${vamt||''}"><div id="vres">${verdictHTML()}</div></div>
+ <div class="cd">${isO()?curRow():''}<label for="sa">Amount (<span id="sal">${scur==='INR'?'₹':scur}</span>)</label><input id="sa" type="number" inputmode="numeric" min="0" placeholder="0">
  <div class="cats" role="group" aria-label="Category">${catP().map(c=>`<button type="button" class="chip" data-a="cat" data-c="${c}" aria-pressed="${cat===c}">${c}</button>`).join('')}</div>
  ${isL()?nwHTML():''}<input id="sn" type="text" maxlength="60" placeholder="Note (optional)" aria-label="Note">
  <button class="btn pri" style="width:100%" data-a="spend">Add spend</button></div>
- ${groups.length?groups.map(g=>`<div class="dh"><span>${g.l}</span><span>${R(sum(g.items,x=>x.a))}</span></div><div class="fl">${g.items.map(s=>`<div><span>${E(s.n||s.c||'Spend')}<small>${s.c?E(s.c):'Uncategorised'}${s.w?' · '+(s.w==='n'?'Need':'Want'):''}</small></span><span class="rr"><b class="neg2">-${R(s.a)}</b><button data-a="delspend" data-id="${E(s.id)}" aria-label="Delete this spend">×</button></span></div>`).join('')}</div>`).join(''):'<div class="em" style="margin-top:18px">No spends yet. Add your first one above.</div>'}`;
+ ${groups.length?groups.map(g=>`<div class="dh"><span>${g.l}</span><span>${R(sum(g.items,x=>x.a))}</span></div><div class="fl">${g.items.map(s=>`<div><span>${E(s.n||s.c||'Spend')}<small>${s.c?E(s.c):'Uncategorised'}${s.w?' · '+(s.w==='n'?'Need':'Want'):''}${s.fx?' · '+E(s.fx.c)+' '+fnum(s.fx.amt)+' at ₹'+fnum(s.fx.rate):''}</small></span><span class="rr"><b class="neg2">-${R(s.a)}</b><button data-a="delspend" data-id="${E(s.id)}" aria-label="Delete this spend">×</button></span></div>`).join('')}</div>`).join(''):'<div class="em" style="margin-top:18px">No spends yet. Add your first one above.</div>'}`;
 }
 function sugPanel(){
  const s=st.sug;if(!s)return'';
@@ -486,7 +571,7 @@ function tabGoalsG(){
   const pct=Math.min(100,g.t?g.s/g.t*100:0),n=need(g),late=g.d&&g.s<g.t&&((+g.d.slice(0,4))*12+ +g.d.slice(5))<now;
   const chip=g.s>=g.t?'Funded ✅':late?'Past deadline':p.ready?(p.safe<0?'Needs attention':'On track ✅'):'';
   return`<div class="gc"><h4>${E(g.n||'Goal')}${chip?`<span class="ch ${late||(p.ready&&p.safe<0)?'w2':''}">${chip}</span>`:''}</h4><div class="pb"><i style="width:${pct}%"></i></div><p><span>${R(g.s)} of ${R(g.t)}</span><span>${n?R(n)+' a month':''}</span></p></div>`}).join(''):'<div class="em">No goals yet.</div>'}
- <div style="margin-top:16px"><button class="btn gho" data-a="edit" data-s="goals">${st.goals.length?'Edit goals':'Add a goal'}</button></div>`;
+ ${st.goals.length>=GOAL_LIMIT&&SW.data.tier!=='paid'?'<p class="fn">Core includes 2 goal vaults. Copilot, coming soon, adds unlimited vaults.</p>':''}<div style="margin-top:16px"><button class="btn gho" data-a="edit" data-s="goals">${st.goals.length?'Edit goals':'Add a goal'}</button></div>`;
 }
 const CHAT_HELLO='Hi. I am the SpendWise advisor. Ask how to plan ahead, fix a tight month, or choose the next money step. I give general guidance for people in India — not regulated financial advice.';
 const CHAT_SYS_PUBLIC=`You are SpendWise Advisor, a calm, plain-spoken money coach for people in India using the SpendWise app.
@@ -641,7 +726,7 @@ function tabMore(){
  <div class="cd prof"><div class="av" style="font-size:26px;background:#0f172a;border:1px solid var(--line)">${P.ic||'👤'}</div><div><b>${E(pr||'None chosen')}</b><small>${E(P.tag||'')}</small></div></div>
  <div style="margin-top:12px"><button class="btn gho" data-a="edit" data-s="profile">Change profile</button></div>
  <div class="h3s">Your setup</div>
- <div class="fl"><div><span>${E(incLabel())}</span><b>${R(st.income)}</b></div><div><span>Existing savings</span><b>${R(st.savings)}</b></div>${L?`<div><span>Quest XP</span><b>⭐ ${st.learn.xp}</b></div>`:`<div><span>Debts you owe</span><b>${R(st.debt||0)}</b></div><div><span>Dependents</span><b>${st.dependents||0}</b></div><div><span>Fixed commitments</span><b>${R(p.fx)}</b></div>`}${ans}</div>
+ <div class="fl"><div><span>Plan</span><b>${SW.data.tier==='paid'?'Copilot':'Core (free)'}</b></div><div><span>${E(incLabel())}</span><b>${R(st.income)}</b></div><div><span>Existing savings</span><b>${R(st.savings)}</b></div>${L?`<div><span>Quest XP</span><b>⭐ ${st.learn.xp}</b></div>`:`<div><span>Debts you owe</span><b>${R(st.debt||0)}</b></div><div><span>Dependents</span><b>${st.dependents||0}</b></div><div><span>Fixed commitments</span><b>${R(p.fx)}</b></div>`}${ans}</div>
  ${!L&&st.fixed.length?'<div class="fl" style="margin-top:10px">'+st.fixed.map(x=>`<div><span>${E(x.n||'Item')}</span><b>${R(+x.a||0)}</b></div>`).join('')+'</div>':''}
  <div style="margin-top:12px"><button class="btn gho" data-a="edit" data-s="${L?'money':'basics'}">Edit setup</button></div>
  <div class="h3s">Weekly statement</div>
@@ -650,6 +735,11 @@ function tabMore(){
  <p class="fn">AI observations are based on recorded data and may be imperfect. This is general guidance, not regulated financial advice.</p></div>
  <div class="h3s">AI and privacy</div>
  <div class="cd"><b>${aiReady()?'AI is connected':'AI is not connected yet'}</b><p class="s2" style="margin-top:6px">When it is on, the AI only receives your numbers and choices: income, costs, goals and the multiple-choice answers in your profile. It never receives your name, email or anything you typed as free text. You choose whether to apply what it suggests.</p></div>
+ ${SW.data.tier==='paid'?'':'<div class="h3s">Copilot</div><div class="cd"><b>'+(SW.data.waitlisted?'You are on the Copilot waitlist':'Copilot is coming soon')+'</b><p class="s2" style="margin-top:6px">Copilot adds unlimited goal vaults, and is planned to add automatic UPI and bank sync, predictive AI verdicts and deeper insights. Payments are not open yet, so nothing is charged.</p>'+(SW.data.waitlisted?'':'<button class="btn gho" style="margin-top:14px" data-a="upgrade">Join the waitlist</button>')+'</div>'}
+ <div class="h3s">Your data</div>
+ <div class="cd"><b>Back up your data</b><p class="s2" style="margin-top:6px">Your data lives only on this device. Download an encrypted backup file and keep it safe, so clearing your browser or changing phones never wipes your plan. ${SW.data.lastBackup?'Last backup: '+new Date(SW.data.lastBackup).toLocaleDateString('en-IN')+'.':'You have not made a backup yet.'}</p>
+ <div class="row" style="margin-top:14px"><button class="btn pri" data-a="backup">Download backup</button><button class="btn gho" data-a="restore">Restore from backup</button></div><input type="file" id="rfile" accept=".json,application/json" hidden></div>
+ ${u.google?'':'<div class="cd" style="margin-top:12px"><b>Recovery code</b><p class="s2" style="margin-top:6px">'+(SW.hasRecovery()?'A recovery code is set up. If you forget your password, use Forgot your password on the sign-in screen.':'Without a recovery code, a forgotten password means your data is gone for good. Set one up now.')+'</p><button class="btn gho" style="margin-top:14px" data-a="recov">'+(SW.hasRecovery()?'Create a new code':'Set up a recovery code')+'</button></div>'}
  <div class="h3s">Account</div><div class="row"><button class="btn gho" data-a="logout">Sign out</button><button class="btn gho" data-a="delacct" style="color:var(--rd)">Delete account</button></div>
  <p class="fn" style="margin-top:22px">SpendWise plans and tracks your money. It does not move real money between accounts. Your data is encrypted on this device.</p>`;
 }
@@ -657,9 +747,9 @@ const navItems=()=>{const L=isL();return[['home','Home',I.home],['spends','Spend
 function render(){
  if(!st.done){wizard();return}
  root.classList.toggle('big',!!pd().big);
- const body={home:tabHome,spends:tabSpends,plan:tabPlan,goals:tabGoals,ask:tabAsk,more:tabMore,invest:tabInvest}[tab]();
+ const body={home:tabHome,spends:tabSpends,plan:tabPlan,goals:tabGoals,ask:tabAsk,more:tabMore,invest:tabInvest,fx:tabFx}[tab]();
  if(SW.setTab)SW.setTab(tab); /* remember the current tab so a reload returns here */
- root.innerHTML=`<div class="pg">${body}</div><nav class="nv" aria-label="App"><div>${navItems().map(n=>`<button data-a="go" data-t="${n[0]}" ${(tab==='invest'?'plan':tab)===n[0]?'aria-current="page"':''}>${n[2]}${n[1]}</button>`).join('')}</div></nav>`;
+ root.innerHTML=`<div class="pg">${body}${tab==='home'?nudge():''}</div><nav class="nv" aria-label="App"><div>${navItems().map(n=>`<button data-a="go" data-t="${n[0]}" ${({invest:'plan',fx:'home'}[tab]||tab)===n[0]?'aria-current="page"':''}>${n[2]}${n[1]}</button>`).join('')}</div></nav>`;
  if(tab==='ask'){
   if(!st.chat)st.chat=[{role:'assistant',content:CHAT_HELLO,local:true}];
   const store={get msgs(){return st.chat},get busy(){return chatBusy},set busy(v){chatBusy=v},get err(){return chatErr},set err(v){chatErr=v}};
@@ -679,9 +769,10 @@ function allocate(){
  if(isL()){st.learn.xp+=20;toast('Jars filled! +20 XP ⭐ You can spend '+R(p.safe)+' freely.')}else toast(mname()+' allocated. You can spend '+R(p.safe)+' freely.');
 }
 function addSpend(){
- const a=Math.min(1e9,Math.round(+($('sa').value)||0)),n=$('sn').value.trim().slice(0,60);
+ const raw=+($('sa').value)||0,n=$('sn').value.trim().slice(0,60);let a=Math.min(1e9,Math.round(raw)),fx=null;
+ if(isO()&&scur!=='INR'&&raw>0){const r=fxRate(scur);if(!(r>0)){toast('Enter the rate for '+scur+' first.',1);return false}a=Math.min(1e9,Math.round(raw*r));fx={c:scur,amt:raw,rate:r}}
  if(a<=0){toast('Enter the amount you spent.',1);$('sa').focus();return false}
- st.spends.push({id:Date.now()+'-'+Math.random().toString(36).slice(2,6),t:Date.now(),k:mk(),a,n,c:cat,w:isL()?nw:''});
+ st.spends.push({id:Date.now()+'-'+Math.random().toString(36).slice(2,6),t:Date.now(),k:mk(),a,n,c:cat,w:isL()?nw:'',...(fx?{fx}:{})});
  let xp='';if(isL()){const td=new Date().toDateString();if(st.learn.logged!==td){st.learn.logged=td;st.learn.xp+=5;xp=' +5 XP ⭐'}}
  toast('Added '+R(a)+(cat?' · '+cat:'')+xp);cat='';nw='';return true;
 }
@@ -742,20 +833,35 @@ async function runAI(){
  aiBusy=false;render();
 }
 
+/* ===== backup nudge, restore, and cross-tab refresh ===== */
+function nudge(){const L=SW.data.lastBackup||0;
+ if(!st.done||(!st.spends.length&&!st.cycles.length)||Date.now()-L<30*864e5)return'';
+ return`<div class="al" style="margin-top:22px"><b>Back up your data</b><span>${L?'Your last backup is over a month old.':'Your data lives only on this device. A backup file protects it if you clear your browser or change phones.'}</span><button class="btn pri" data-a="backup">Download backup</button></div>`}
+async function doRestore(file){
+ const r=await SW.restore(file);
+ if(r==='cancel')return;
+ if(r==='bad')return toast('That is not a SpendWise backup file.',1);
+ if(r==='pw')return toast('Wrong backup password.',1);
+ if(!confirm('Replace your current data with the backup from '+new Date(r.at).toLocaleDateString('en-IN')+'? This cannot be undone.'))return;
+ const tier=SW.data.tier;SW.data=Object.assign(r.data,{tier});delete SW.data.acct;
+ try{await SW.save()}catch{return toast('Could not save the restored data on this device.',1)}
+ SW.resume={tab:'more'};start(root);toast('Backup restored.')}
+SW.refresh=(d,t)=>{if(!root||!st||!st.done||!d||!d.setup||!d.setup.done)return false;SW.data=d;SW.resume={tab:t};start(root);toast('Updated from another tab.');return true};
 /* re-draw the current screen without jumping the scroll position */
 function rr(m){const y=scrollY;if(st.done){render();if(m)toast(m,1)}else wizard(m||'');scrollTo(0,y)}
 /* ===== start ===== */
 function start(r){
  root=r;st=Object.assign(blank(),SW.data.setup||{});
  /* a page reload restores the tab the person was on (SW.resume is set by restoreSession in index.html) */
- tab=['home','spends','plan','goals','ask','more','invest'].includes(SW.resume&&SW.resume.tab)?SW.resume.tab:'home';SW.resume=null;
- cat='';nw='';game=null;aiBusy=false;aiErr='';chatBusy=false;chatErr='';
+ tab=['home','spends','plan','goals','ask','more','invest','fx'].includes(SW.resume&&SW.resume.tab)?SW.resume.tab:'home';SW.resume=null;
+ cat='';nw='';scur='INR';vamt=0;game=null;aiBusy=false;aiErr='';chatBusy=false;chatErr='';
  if(!Array.isArray(st.chat)||!st.chat.length)st.chat=[{role:'assistant',content:CHAT_HELLO,local:true}];
  if(!st.v||st.v<3){ /* earlier builds pre-filled percentages; clear them so nothing is a default */
   st.rules={e:null,i:null,em:null};st.v=3;delete st.bal;save()}
  st.rules=Object.assign({e:null,i:null,em:null},st.rules);
  st.pf=st.pf&&typeof st.pf==='object'&&!Array.isArray(st.pf)?st.pf:{};
- st.inv=Object.assign({sip:{},fd:{},tx:{}},st.inv);['sip','fd','tx'].forEach(k=>st.inv[k]=Object.assign({},st.inv[k]));fixTeen();
+ st.inv=Object.assign({sip:{},fd:{},tx:{},loan:{}},st.inv);['sip','fd','tx','loan'].forEach(k=>st.inv[k]=Object.assign({},st.inv[k]));fixTeen();
+ st.fx=Object.assign({rates:{}},st.fx);st.fx.rates=Object.assign({},st.fx.rates);
  st.learn=Object.assign({xp:0},st.learn);st.learn.jars=Object.assign({s:0,v:0,d:0},st.learn.jars);
  /* nobody reaches the dashboard without a profile (Google sign-in starts with none) */
  if(!SW.data.profile){st.done=false;st.step=0}
@@ -767,14 +873,21 @@ function start(r){
  if(window.SW_MEM)setTimeout(()=>toast('Your browser is blocking storage, so your data will be lost when you close this tab.',1),600);
  if(!root.dataset.b){root.dataset.b=1;
   root.addEventListener('input',e=>{const t=e.target;
-   if(t.dataset.c){const[g,k]=t.dataset.c.split('.');st.inv[g][k]=t.value===''?'':+t.value;const o=$('ires');if(o)o.innerHTML=g==='sip'?sipRes():fdRes();return}
+   if(t.id==='va'){vamt=Math.min(1e9,Math.max(0,+t.value||0));const o=$('vres');if(o)o.innerHTML=verdictHTML();return}
+   if(t.id==='sr'){st.fx.rates[scur]={r:Math.max(0,+t.value||0),at:Date.now()};return}
+   if(t.dataset.fx){const k=t.dataset.fx;if(k==='rate')st.fx.rates[fxCur()]={r:Math.max(0,+t.value||0),at:Date.now()};else if(k==='amt')st.fx.amt=Math.max(0,+t.value||0);const o=$('fres');if(o)o.innerHTML=fxRes();return}
+   if(t.dataset.c){const[g,k]=t.dataset.c.split('.');st.inv[g][k]=t.value===''?'':+t.value;const o=$('ires');if(o)o.innerHTML=g==='sip'?sipRes():g==='loan'?loanRes():fdRes();return}
    if(t.dataset.r){const k=t.dataset.r,mx=k==='em'?24:50;st.rules[k]=t.value===''?null:Math.max(0,Math.min(mx,+t.value||0));fixTeen();refreshPlan();return}
    const f=t.dataset.f;if(!f)return;const v=t.type==='number'?Math.min(1e9,Math.max(0,+t.value||0)):t.value;
    if(f.includes('.')){const[l,k]=f.split('.');if(t.dataset.i==null||t.dataset.i==='')st[l][k]=v;else st[l][+t.dataset.i][k]=v}else st[f]=v});
-  root.addEventListener('change',e=>{const t=e.target;if(t.dataset.c)save();if(t.dataset.r){const v=st.rules[t.dataset.r];if(v!=null)t.value=v;save()}});
+  root.addEventListener('change',e=>{const t=e.target;if(t.id==='rfile'){const f=t.files&&t.files[0];t.value='';if(f)doRestore(f);return}
+   if(t.id==='sc'){scur=t.value;const w=$('srw');if(w){w.hidden=scur==='INR';const l=$('srl');if(l)l.textContent='Rupees per 1 '+scur;const r=$('sr');if(r)r.value=fxRate(scur)||''}const s=$('sal');if(s)s.textContent=scur==='INR'?'₹':scur;return}
+   if(t.id==='sr'){save();return}
+   if(t.dataset.fx){if(t.dataset.fx==='cur'){st.fx.cur=t.value;save();rr()}else save();return}
+   if(t.dataset.c)save();if(t.dataset.r){const v=st.rules[t.dataset.r];if(v!=null)t.value=v;save()}});
   root.addEventListener('keydown',async e=>{if(e.key==='Enter'&&(e.target.id==='sa'||e.target.id==='sn')){e.preventDefault();if(spendBusy)return;spendBusy=true;try{if(addSpend()){await save();render()}}finally{spendBusy=false}}});
   root.addEventListener('click',async e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;
-   if(a==='go'){tab=b.dataset.t;render();scrollTo(0,0);if(b.dataset.f&&$('sa'))$('sa').focus()}
+   if(a==='go'){tab=b.dataset.t;render();scrollTo(0,0);if(b.dataset.f&&$('sa'))$('sa').focus();if(b.dataset.v&&$('va'))$('va').focus()}
    else if(a==='cat'){cat=cat===b.dataset.c?'':b.dataset.c;root.querySelectorAll('[data-a=cat]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.c===cat))}
    else if(a==='spend'){if(spendBusy)return;spendBusy=true;try{if(addSpend()){await save();render()}}finally{spendBusy=false}}
    else if(a==='delspend'){if(!confirm('Delete this spend?'))return;st.spends=st.spends.filter(s=>s.id!==b.dataset.id);await save();render();toast('Spend removed.')}
@@ -785,6 +898,13 @@ function start(r){
    else if(a==='weekly-statement'){makeWeeklyStatement()}
    else if(a==='logout')SW.logout();
    else if(a==='delacct'){if(!confirm('Delete your account and all your SpendWise data? This cannot be undone.'))return;const ok=await SW.deleteAccount();if(!ok)toast('Could not delete the account right now. Check your connection and try again.',1)}
+   else if(a==='backup'){SW.data.setup=st;const r=await SW.backup();if(r===true){toast('Backup downloaded. Keep it somewhere safe.');rr()}else if(r==='short')toast('Use at least 8 characters for the backup password.',1)}
+   else if(a==='restore'){const f=$('rfile');if(f)f.click()}
+   else if(a==='recov'){const r=await SW.recovery();if(r==='bad')toast('That password is not right.',1);else if(r==='ok')toast('Recovery code saved. Keep it somewhere safe.');rr()}
+   else if(a==='getrate')getRate(tab==='fx'?fxCur():scur);
+   else if(a==='fxdir'){st.fx.dir=b.dataset.v;await save();rr()}
+   else if(a==='vlog'){const sc=$('sc');if(sc&&sc.value!=='INR'){sc.value='INR';sc.dispatchEvent(new Event('change',{bubbles:true}))}const e=$('sa');if(e){e.value=Math.round(vamt);e.focus()}}
+   else if(a==='upgrade')SW.upgrade();
    else if(a==='isec'){invSec=b.dataset.s;rr()}
    else if(a==='hz'){invH=invH===b.dataset.k?'':b.dataset.k;rr()}
    else if(a==='sipuse'){st.inv.sip.m=plan().i;await save();rr()}
@@ -802,7 +922,7 @@ function start(r){
    else if(a==='gans'){if(!game||game.a)return;const c=SL().items[game.q[game.i]];game.a=b.dataset.v;if(game.a===c.k){game.score++;st.learn.xp+=10}await save();rr()}
    else if(a==='gnext'){if(game){game.i++;game.a=''}rr()}
    else if(a==='af'){st.fixed.push({n:b.dataset.p,a:0});wizard()}
-   else if(a==='ag'){st.goals.push({n:b.dataset.p,t:0,s:0,d:''});wizard()}
+   else if(a==='ag'){if(st.goals.length>=GOAL_LIMIT&&SW.data.tier!=='paid')return wizard('Core includes 2 goal vaults. Copilot, coming soon, adds unlimited vaults.');st.goals.push({n:b.dataset.p,t:0,s:0,d:''});wizard()}
    else if(a==='del'){st[b.dataset.l].splice(+b.dataset.i,1);wizard()}
    else if(a==='back'){st.step--;wizard();scrollTo(0,0)}
    else if(a==='next'){
