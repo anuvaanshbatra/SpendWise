@@ -8,7 +8,8 @@
 <meta name="theme-color" content="#030712">
 <meta property="og:title" content="SpendWise — Spend today. Plan tomorrow.">
 <meta property="og:description" content="Ask before you swipe. Get a clear verdict on every purchase.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='Logo.png' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2310b981'/><path d='M7 22l7-7 4 4 7-8' stroke='black' stroke-width='3' fill='none' stroke-linecap='round'/></svg>">
+<link rel="icon" type="image/png" sizes="128x128" href="logo-128.png">
+<link rel="apple-touch-icon" href="logo-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&display=swap" rel="stylesheet">
@@ -32,7 +33,7 @@ header{position:fixed;inset:0 0 auto;z-index:50;padding-top:env(safe-area-inset-
 header.s{background:rgba(3,7,18,.82);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
 .nav{height:72px;display:flex;align-items:center;justify-content:space-between;gap:16px}
 .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:-.02em}
-.mark{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,#10b981,#06b6d4);display:grid;place-items:center;color:#000;box-shadow:0 6px 20px rgba(16,185,129,.3)}
+.mark{width:36px;height:36px;border-radius:11px;object-fit:cover;display:block;flex:none;box-shadow:0 6px 20px rgba(34,211,238,.28)}
 .links{display:flex;gap:30px;font-size:14px;font-weight:500;color:var(--mu)}
 .links a:hover{color:#fff}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:14px 26px;border-radius:14px;font-weight:700;font-size:15px;transition:transform .2s,box-shadow .2s,background .2s}
@@ -230,7 +231,7 @@ dialog{max-height:calc(100dvh - 32px);overflow-y:auto}dialog input[type=text]{wi
 
 <header id="hd">
 <div class="wrap nav">
-<a href="#top" class="logo"><span class="mark"><svg class="i" style="stroke-width:2.6"><use href="#up"/></svg></span>SpendWise</a>
+<a href="#top" class="logo"><img class="mark" src="logo-128.png" alt="" width="36" height="36">SpendWise</a>
 <nav class="links" aria-label="Main"><a href="#how">How it works</a><a href="#profiles">Profiles</a><a href="#why">Why SpendWise</a><a href="#pricing">Pricing</a><a href="#advisor">Ask AI</a><a href="#faq">FAQ</a></nav>
 <button class="btn pri sm" data-open>Open the app</button>
 <button class="burger" id="bg" aria-label="Menu" aria-expanded="false" aria-controls="mn"><svg class="i" width="22" height="22"><use href="#pl"/></svg></button>
@@ -353,7 +354,7 @@ dialog{max-height:calc(100dvh - 32px);overflow-y:auto}dialog input[type=text]{wi
 </main>
 
 <footer><div class="wrap fr">
-<a href="#top" class="logo" style="font-size:16px;color:#fff"><span class="mark" style="width:30px;height:30px;border-radius:9px"><svg class="i"><use href="#up"/></svg></span>SpendWise</a>
+<a href="#top" class="logo" style="font-size:16px;color:#fff"><img class="mark" src="logo-128.png" alt="" width="30" height="30" style="width:30px;height:30px;border-radius:9px">SpendWise</a>
 <span>© 2026 SpendWise. Every rupee today moves you closer to tomorrow.</span>
 <nav><button data-open>Sign in</button><a href="#advisor">Ask AI</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></nav>
 </div></footer>
@@ -374,7 +375,7 @@ dialog{max-height:calc(100dvh - 32px);overflow-y:auto}dialog input[type=text]{wi
 <p class="lg" id="fpw" style="margin-top:10px"><button type="button" id="fp" style="color:var(--mu);text-decoration:underline;text-underline-offset:3px;padding:10px">Forgot your password?</button></p>
 <p class="lg">Your data is encrypted on this device with AES-256. We never sell it.</p>
 </div></section>
-<div id="app"><div class="atop"><a class="logo" href="#"><span class="mark"><svg class="i" style="stroke-width:2.6"><use href="#up"/></svg></span>SpendWise</a><button class="btn gho sm" id="lo">Sign out</button></div><div id="appRoot"></div></div>
+<div id="app"><div class="atop"><a class="logo" href="#"><img class="mark" src="logo-128.png" alt="" width="36" height="36">SpendWise</a><button class="btn gho sm" id="lo">Sign out</button></div><div id="appRoot"></div></div>
 
 <script>
 // Set this to your PWA's URL.
@@ -595,7 +596,7 @@ addEventListener('storage',async e=>{
 let ENTRY={src:'open'};
 const FL=()=>{let f=$('flow');if(!f){f=document.createElement('section');f.id='flow';f.setAttribute('role','dialog');f.setAttribute('aria-modal','true');document.body.append(f)}return f};
 const tick='<svg class="i"><use href="#ok"/></svg>';
-function showFlow(h,label){const f=FL();f.setAttribute('aria-label',label);f.innerHTML='<div class="fw"><a class="logo" href="#" onclick="return false"><span class="mark"><svg class="i" style="stroke-width:2.6"><use href="#up"/></svg></span>SpendWise</a>'+h+'</div>';f.classList.add('o');document.body.style.overflow='hidden';f.scrollTop=0;const h1=f.querySelector('h1');if(h1){h1.tabIndex=-1;h1.focus()}return f}
+function showFlow(h,label){const f=FL();f.setAttribute('aria-label',label);f.innerHTML='<div class="fw"><a class="logo" href="#" onclick="return false"><img class="mark" src="logo-128.png" alt="" width="36" height="36">SpendWise</a>'+h+'</div>';f.classList.add('o');document.body.style.overflow='hidden';f.scrollTop=0;const h1=f.querySelector('h1');if(h1){h1.tabIndex=-1;h1.focus()}return f}
 function hideFlow(){const f=$('flow');if(f)f.classList.remove('o');document.body.style.overflow=''}
 function gate(go){
  const d=SW.data,e=ENTRY;ENTRY={src:'open'};
