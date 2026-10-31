@@ -3,7 +3,7 @@
    ENDPOINT   : RECOMMENDED. URL of your own proxy (see ai-proxy-worker.js). Your key stays on the server.
    MODEL      : exact OpenRouter model id, e.g. 'xiaomi/mimo-v2.6-flash'. Optional if the proxy sets the model.
    DIRECT_KEY : TESTING ONLY. A key placed here is visible to everyone who opens the site. Never publish it. */
-const AI_CONFIG={ENDPOINT:'https://ai-proxy-worker.spendwise-main.workers.dev',MODEL:'nvidia/nemotron-3-ultra-550b-a55b:free',DIRECT_KEY:''};
+const AI_CONFIG={ENDPOINT:'https://ai-proxy-worker.spendwise-main.workers.dev',MODEL:'nvidia/nemotron-3.5-lightning:free',MODELS:['nvidia/nemotron-3.5-lightning:free','google/gemma-4-31b-it:free','liquid/lfm-2.5-2.6b:free'],DIRECT_KEY:''};
 const aiReady=()=>!!AI_CONFIG.ENDPOINT||!!(AI_CONFIG.DIRECT_KEY&&AI_CONFIG.MODEL);
 
 const R=n=>(n<0?'-':'')+'₹'+Math.abs(Math.round(n)).toLocaleString('en-IN');
@@ -841,7 +841,7 @@ const AI_TIMEOUT=120000,AI_SLOW_MS=10000;
 async function aiAsk0(messages,opt={}){
   const direct=!AI_CONFIG.ENDPOINT,headers={'Content-Type':'application/json'};
   if(direct){headers.Authorization='Bearer '+AI_CONFIG.DIRECT_KEY;headers['X-Title']='SpendWise'}
-  const body={messages,temperature:opt.temperature??.2,max_tokens:opt.max_tokens??700};if(AI_CONFIG.MODEL)body.model=AI_CONFIG.MODEL;
+  const body={messages,temperature:opt.temperature??.2,max_tokens:opt.max_tokens??700};if(direct){body.model=AI_CONFIG.MODELS[0]||AI_CONFIG.MODEL;body.models=AI_CONFIG.MODELS}/* with the proxy, the worker owns the model chain */
   let timedOut=false;const ctl=new AbortController(),to=setTimeout(()=>{timedOut=true;ctl.abort()},AI_TIMEOUT);
  try{
  let r;try{r=await fetch(direct?'https://openrouter.ai/api/v1/chat/completions':AI_CONFIG.ENDPOINT,{method:'POST',headers,body:JSON.stringify(body),signal:ctl.signal})}
