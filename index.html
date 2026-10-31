@@ -10,6 +10,9 @@
 <meta property="og:description" content="Ask before you swipe. Get a clear verdict on every purchase.">
 <link rel="icon" type="image/png" sizes="128x128" href="logo-128.png">
 <link rel="apple-touch-icon" href="logo-180.png">
+<meta property="og:image" content="https://spendwise-main.netlify.app/logo.png">
+<meta property="og:url" content="https://spendwise-main.netlify.app/">
+<meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&display=swap" rel="stylesheet">
@@ -33,7 +36,7 @@ header{position:fixed;inset:0 0 auto;z-index:50;padding-top:env(safe-area-inset-
 header.s{background:rgba(3,7,18,.82);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
 .nav{height:72px;display:flex;align-items:center;justify-content:space-between;gap:16px}
 .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:-.02em}
-.mark{width:36px;height:36px;border-radius:11px;object-fit:cover;display:block;flex:none;box-shadow:0 6px 20px rgba(34,211,238,.28)}
+.mark{width:36px;height:36px;border-radius:11px;display:block;flex:none;object-fit:cover;box-shadow:0 6px 20px rgba(6,182,212,.3)}
 .links{display:flex;gap:30px;font-size:14px;font-weight:500;color:var(--mu)}
 .links a:hover{color:#fff}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:14px 26px;border-radius:14px;font-weight:700;font-size:15px;transition:transform .2s,box-shadow .2s,background .2s}
@@ -249,7 +252,7 @@ dialog{max-height:calc(100dvh - 32px);overflow-y:auto}dialog input[type=text]{wi
 <button class="btn pri" data-open>Open the app <svg class="i"><use href="#up"/></svg></button>
 <a href="#how" class="btn gho">See how it works</a>
 </div>
-<p class="note"><svg class="i"><use href="#ok"/></svg>Free to start. Works in your browser on any phone or computer.</p>
+<p class="note"><svg class="i"><use href="#ok"/></svg>Free to start. Works in your browser and installs like an app.</p>
 </div>
 
 <div class="demo" aria-labelledby="dh">
@@ -299,7 +302,7 @@ dialog{max-height:calc(100dvh - 32px);overflow-y:auto}dialog input[type=text]{wi
 <div class="sh"><h2 class="t">Other apps show you what you did wrong. This one stops you first.</h2></div>
 <div class="cards">
 <div class="card c1"><div class="ico"><svg class="i"><use href="#br"/></svg></div><h3>Verdicts before purchases</h3><p>See how any purchase changes your safe-to-spend balance and your goal vaults, instantly.</p></div>
-<div class="card c2"><div class="ico"><svg class="i"><use href="#rf"/></svg></div><h3>Fast manual tracking</h3><p>Log a spend in two taps. Automatic UPI and bank sync is planned for Copilot.</p></div>
+<div class="card c2"><div class="ico"><svg class="i"><use href="#rf"/></svg></div><h3>Tracking that logs itself</h3><p>With Copilot, UPI and bank transactions sync automatically. No typing in every chai.</p></div>
 <div class="card c3"><div class="ico"><svg class="i"><use href="#tg"/></svg></div><h3>Goal vaults that do the math</h3><p>Tell it the trip, laptop or emergency fund. It calculates the monthly amount to get there on time.</p></div>
 </div>
 </div>
@@ -307,13 +310,13 @@ dialog{max-height:calc(100dvh - 32px);overflow-y:auto}dialog input[type=text]{wi
 
 <section id="pricing" style="padding-top:20px">
 <div class="wrap">
-<div class="sh"><h2 class="t">Start free. Upgrade when it pays off.</h2></div>
+<div class="sh"><h2 class="t">Start free. Copilot is on the way.</h2></div>
 <div class="price">
 <div class="plan"><h3>Core</h3><div class="pr">₹0</div><p>Everything you need to start.</p>
-<ul><li><svg class="i"><use href="#ok"/></svg>Real-time safe-to-spend balance</li><li><svg class="i"><use href="#ok"/></svg>Up to 2 goal vaults</li><li><svg class="i"><use href="#ok"/></svg>Verdict before every purchase</li><li><svg class="i"><use href="#ok"/></svg>Encrypted backup and recovery code</li><li><svg class="i"><use href="#ok"/></svg>Data stays on your device</li></ul>
+<ul><li><svg class="i"><use href="#ok"/></svg>Safe-to-spend balance and a verdict before every purchase</li><li><svg class="i"><use href="#ok"/></svg>Up to 2 goal vaults</li><li><svg class="i"><use href="#ok"/></svg>Monthly summaries</li><li><svg class="i"><use href="#ok"/></svg>Data stays on your device</li></ul>
 <button class="btn gho" data-open>Start free</button></div>
-<div class="plan hot"><span class="tag">Coming soon</span><h3>Copilot</h3><div class="pr">₹2,000<small> / year</small></div><p>Planned price, about ₹167 a month. Not on sale yet.</p>
-<ul><li><svg class="i"><use href="#ok"/></svg>Unlimited goal vaults</li><li><svg class="i"><use href="#ok"/></svg>Automatic UPI and bank sync (planned)</li><li><svg class="i"><use href="#ok"/></svg>Predictive AI verdicts (planned)</li><li><svg class="i"><use href="#ok"/></svg>Deeper spending insights (planned)</li></ul>
+<div class="plan hot"><span class="tag">Coming soon</span><h3>Copilot</h3><div class="pr">₹2,000<small> / year</small></div><p>Planned price. Not on sale yet.</p>
+<ul><li><svg class="i"><use href="#ok"/></svg>Unlimited goal vaults</li><li><svg class="i"><use href="#ok"/></svg>An AI explanation of every verdict</li><li><svg class="i"><use href="#ok"/></svg>Automatic UPI and bank sync (planned)</li><li><svg class="i"><use href="#ok"/></svg>Deeper spending insights (planned)</li></ul>
 <button class="btn pri" data-open>Join the Copilot waitlist</button></div>
 </div>
 </div>
@@ -339,8 +342,8 @@ dialog{max-height:calc(100dvh - 32px);overflow-y:auto}dialog input[type=text]{wi
 <div class="sh"><h2 class="t">Questions, answered.</h2></div>
 <details><summary>Who is SpendWise for?<svg class="i"><use href="#pl"/></svg></summary><p>Anyone whose money has to last: children learning the basics, teens, college students, working professionals, senior citizens, armed forces and All India Services officers, OCI cardholders and families relying on government schemes. Each gets a profile built around how they earn and spend.</p></details>
 <details><summary>Do I need to install anything?<svg class="i"><use href="#pl"/></svg></summary><p>No app store needed. SpendWise is a web app you open in your browser, and you can add it to your home screen to use it like a native app.</p></details>
-<details><summary>Is the free plan really free?<svg class="i"><use href="#pl"/></svg></summary><p>Yes. Core has no trial clock and no card required. Copilot is not on sale yet. Join the waitlist and we will email you once, when it opens.</p></details>
-<details><summary>Where is my data kept?<svg class="i"><use href="#pl"/></svg></summary><p>On the free plan, your data is stored locally on your device. Copilot adds automatic bank and UPI syncing, which you choose to switch on.</p></details>
+<details><summary>Is the free plan really free?<svg class="i"><use href="#pl"/></svg></summary><p>Yes. Core has no trial clock and no card required. Copilot is not on sale yet. You can join the waitlist from the pricing section if you want unlimited goal vaults and an AI explanation of every verdict.</p></details>
+<details><summary>Where is my data kept?<svg class="i"><use href="#pl"/></svg></summary><p>Your budget data is stored on your device. If you join the Copilot waitlist, only your email and one interest choice are sent, and only with your consent.</p></details>
 </div>
 </section>
 
@@ -592,7 +595,7 @@ addEventListener('storage',async e=>{
   try{const d=await unseal(SW.key,JSON.parse(e.newValue)),s=jget('sw_session',null);
    if(SW.refresh)SW.refresh(d,(s&&s.tab)||'home')}catch{}}});
 
-/* ===== plan choice + demo checkout (UI only, nothing is charged, stored or sent) ===== */
+/* ===== plan choice + Copilot waitlist (no payment is taken or asked for) ===== */
 let ENTRY={src:'open'};
 const FL=()=>{let f=$('flow');if(!f){f=document.createElement('section');f.id='flow';f.setAttribute('role','dialog');f.setAttribute('aria-modal','true');document.body.append(f)}return f};
 const tick='<svg class="i"><use href="#ok"/></svg>';
@@ -603,55 +606,58 @@ function gate(go){
  const done=async t=>{d.tier=t;try{await SW.save()}catch{}hideFlow();go()};
  if(!d.tier&&d.profile)d.tier='free';
  if(e.src==='pricing'&&e.tier==='free'&&!d.tier)return done('free');
- if(e.src==='pricing'&&e.tier==='paid'&&d.tier!=='paid')return waitlistPage(done);
+ if(e.src==='pricing'&&e.tier==='paid'&&d.tier!=='paid'&&!d.waitlist)return waitlistPage(done);
  if(!d.tier)return tierPage(done);
  go()}
 function tierPage(done){
  const f=showFlow(`<h1>Choose your plan</h1><p class="fs">Start free and upgrade whenever you like.</p>
  <div class="price"><div class="plan"><h3>Core</h3><div class="pr">₹0</div><p>Everything you need to start.</p>
- <ul><li>${tick}Real-time safe-to-spend balance</li><li>${tick}Up to 2 goal vaults</li><li>${tick}Verdict before every purchase</li><li>${tick}Encrypted backup and recovery code</li><li>${tick}Data stays on your device</li></ul>
+ <ul><li>${tick}Safe-to-spend balance and a verdict before every purchase</li><li>${tick}Up to 2 goal vaults</li><li>${tick}Monthly summaries</li><li>${tick}Data stays on your device</li></ul>
  <button class="btn gho" id="tf">Continue with Core</button></div>
- <div class="plan hot"><span class="tag">Coming soon</span><h3>Copilot</h3><div class="pr">₹2,000<small> / year</small></div><p>Planned price, about ₹167 a month. Not on sale yet.</p>
- <ul><li>${tick}Unlimited goal vaults</li><li>${tick}Automatic UPI and bank sync (planned)</li><li>${tick}Predictive AI verdicts (planned)</li><li>${tick}Deeper spending insights (planned)</li></ul>
+ <div class="plan hot"><span class="tag">Coming soon</span><h3>Copilot</h3><div class="pr">₹2,000<small> / year</small></div><p>Planned price. Not on sale yet.</p>
+ <ul><li>${tick}Unlimited goal vaults</li><li>${tick}An AI explanation of every verdict</li><li>${tick}Automatic UPI and bank sync (planned)</li><li>${tick}Deeper spending insights (planned)</li></ul>
  <button class="btn pri" id="tp">Join the Copilot waitlist</button></div></div>
  <p class="fine" style="text-align:center;margin-top:18px;color:#8391a7;font-size:13px">No card needed for Core. No trial clock.</p>`,'Choose your plan');
  f.querySelector('#tf').onclick=()=>done('free');f.querySelector('#tp').onclick=()=>waitlistPage(done)}
-/* ===== F9: Copilot waitlist. Replaces the fake checkout: no card, UPI or bank details are collected ===== */
-const WL_KEY='sw_wl';
-async function wlSend(item){
- const base=SW.waitlistUrl;if(!base)return{ok:false,status:0};
- const c=new AbortController(),t=setTimeout(()=>c.abort(),10000);
- try{const r=await fetch(base,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(item),signal:c.signal});return{ok:r.ok,status:r.status}}
- catch{return{ok:false,status:0}}finally{clearTimeout(t)}}
-async function wlFlush(){ /* send any signups that could not be sent earlier */
- const q=jget(WL_KEY,[]);if(!q.length||!SW.waitlistUrl)return;
- const keep=[];for(const it of q){const r=await wlSend(it);if(!(r.ok||r.status===400))keep.push(it)}
- try{keep.length?LS.setItem(WL_KEY,JSON.stringify(keep)):LS.removeItem(WL_KEY)}catch{}}
+const WAITLIST_URL='https://ai-proxy-worker.spendwise-main.workers.dev'; /* the worker that has the POST /waitlist route (see waitlist-worker-patch.js) */
+const WL_OPTS=[['vaults','Unlimited goal vaults'],['ai','AI explanation of verdicts'],['sync','UPI and bank sync'],['insights','Deeper insights']];
 function waitlistPage(done){
- const f=showFlow(`<h1>Join the Copilot waitlist</h1><p class="fs">Copilot is not on sale yet, so nothing is charged and no card details are needed. Leave your email and we will tell you when it opens.</p>
- <div class="pay"><div class="pc"><h2>What Copilot adds</h2><ul><li>${tick}Unlimited goal vaults</li><li>${tick}Automatic UPI and bank sync (planned)</li><li>${tick}Predictive AI verdicts (planned)</li><li>${tick}Deeper spending insights (planned)</li></ul></div>
- <div class="pc pf" id="pb"><h2>Your email</h2><label for="we">Email</label><input id="we" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com">
- <label style="display:flex;gap:10px;align-items:flex-start;font-weight:500;font-size:14px;margin:2px 0 16px;cursor:pointer"><input id="wc" type="checkbox" style="width:18px;height:18px;padding:0;margin:3px 0 0;flex:none;accent-color:#34d399"> Email me once, when Copilot launches. I can ask to be removed at any time.</label>
- <div class="er" id="wer" role="alert"></div>
- <button class="btn pri" id="wj" type="button" style="width:100%">Join the waitlist</button>
- <button class="skip" id="wf" type="button" style="width:100%;margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:14px;color:#fff;font-weight:700;text-decoration:none">Continue with Core for now</button>
- <p class="sec"><svg class="i" style="flex:none;margin-top:2px"><use href="#ok"/></svg><span>We use your email only for this one message and never share it.</span></p></div></div>`,'Copilot waitlist');
- const q=s=>f.querySelector(s),er=t=>{q('#wer').textContent=t;q('#wer').classList.toggle('s',!!t)};
- q('#we').value=(SW.user&&SW.user.email)||'';
- q('#wf').onclick=()=>done('free');
- q('#wj').onclick=async()=>{
-  er('');const email=q('#we').value.trim().toLowerCase();
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))return er('Enter a valid email address.');
-  if(!q('#wc').checked)return er('Tick the box to say we may email you about the launch.');
-  const b=q('#wj');b.disabled=true;b.innerHTML='<span class="spin"></span> Joining…';
-  const item={email,plan:'copilot',consent:true,at:Date.now()},r=await wlSend(item);
-  if(r.status===400){b.disabled=false;b.textContent='Join the waitlist';return er('That email does not look right.')}
-  const sent=r.ok;
-  if(!sent){const qd=jget(WL_KEY,[]).filter(x=>x.email!==email);qd.push(item);try{LS.setItem(WL_KEY,JSON.stringify(qd.slice(-10)))}catch{}}
-  if(SW.data){SW.data.waitlisted=true;SW.data.interest='copilot';try{await SW.save()}catch{}}
-  q('#pb').innerHTML=`<div class="pn"><div class="big">${sent?'🎉':'📨'}</div><h2>${sent?'You are on the list':'Saved on this device'}</h2><p>${sent?'We will email you once, when Copilot opens. Nothing was charged.':'We could not reach the waitlist just now. Your request is kept on this device and will be sent the next time SpendWise opens with a connection.'}</p><button class="btn pri" id="go" style="width:100%">Continue</button></div>`;
-  q('#go').onclick=()=>done('free');q('#go').focus()}}
-SW.upgrade=()=>waitlistPage(()=>hideFlow());
+ let interest='',busy=false,sent=!!(SW.data&&SW.data.waitlist);
+ const f=showFlow('','Copilot waitlist');
+ const body=()=>sent?`<div class="pc" style="max-width:520px;margin:0 auto"><div class="pn"><div class="big">✅</div><h2>You are on the list</h2><p>Copilot is not on sale yet, so nothing was charged and no payment details were asked for. We will email you when it opens.</p><button class="btn pri" id="go" style="width:100%" type="button">Continue</button></div></div>`
+ :`<h1>Copilot is coming soon</h1><p class="fs">It is not on sale yet, and no payment is taken. Join the waitlist and we will email you when it opens.</p>
+  <div class="pay"><div class="pc"><h2>What Copilot will add</h2><ul><li>${tick}Unlimited goal vaults</li><li>${tick}An AI explanation of every verdict</li><li>${tick}Automatic UPI and bank sync (planned)</li><li>${tick}Deeper spending insights (planned)</li></ul></div>
+  <div class="pc pf" id="pb"><h2>Join the waitlist</h2>
+  <label for="we">Email</label><input id="we" type="email" autocomplete="email" inputmode="email" value="${(SW.user&&SW.user.email||'').replace(/[&<>"']/g,'')}">
+  <label>What matters most to you? (optional)</label><div class="bk">${WL_OPTS.map(o=>`<button type="button" data-w="${o[0]}" aria-pressed="false">${o[1]}</button>`).join('')}</div>
+  <label style="display:flex;gap:10px;align-items:flex-start;font-weight:500;font-size:14px;margin-bottom:16px;cursor:pointer"><input id="wc" type="checkbox" style="margin-top:3px;width:18px;height:18px;accent-color:#34d399"> I agree that SpendWise stores my email to tell me when Copilot opens.</label>
+  <div class="er" id="pe2" role="alert"></div>
+  <button class="btn pri" id="wj" style="width:100%" type="button">Join the waitlist</button>
+  <button class="skip" id="fr" type="button" style="width:100%;margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:14px;color:#fff;font-weight:700;text-decoration:none">Continue with free for now</button>
+  <p class="sec"><svg class="i" style="flex:none;margin-top:2px"><use href="#ok"/></svg><span>Only your email and your choice are sent. Your budget data stays on this device.</span></p></div></div>`;
+ const draw=()=>{f.querySelector('.fw').innerHTML=f.querySelector('.fw .logo').outerHTML+body();bind()};
+ const err=t=>{const e=f.querySelector('#pe2');if(!e)return;e.textContent=t;e.classList.toggle('s',!!t)};
+ const bind=()=>{
+  const go=f.querySelector('#go');if(go){go.onclick=()=>done('free');go.focus();return}
+  f.querySelectorAll('[data-w]').forEach(x=>x.onclick=()=>{if(busy)return;interest=interest===x.dataset.w?'':x.dataset.w;f.querySelectorAll('[data-w]').forEach(y=>y.setAttribute('aria-pressed',y.dataset.w===interest))});
+  f.querySelector('#fr').onclick=()=>{if(!busy)done('free')};
+  const wj=f.querySelector('#wj');
+  wj.onclick=async()=>{
+   if(busy)return;err('');
+   const email=f.querySelector('#we').value.trim().toLowerCase();
+   if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))return err('Enter a valid email address.');
+   if(!f.querySelector('#wc').checked)return err('Tick the box to agree, or continue with free.');
+   busy=true;wj.disabled=true;wj.innerHTML='<span class="spin"></span> Joining…';
+   let r=null,j=null;
+   try{const c=new AbortController(),t=setTimeout(()=>c.abort(),15000);
+    r=await fetch(WAITLIST_URL+'/waitlist',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,interest,consent:true,source:'app'}),signal:c.signal});clearTimeout(t);
+    try{j=await r.json()}catch{}}catch{r=null}
+   busy=false;
+   if(r&&r.ok){SW.data.waitlist=Date.now();try{await SW.save()}catch{}sent=true;draw();return}
+   err((j&&j.error&&j.error.message)||(r?'Could not join right now. Please try again.':'Could not reach SpendWise. Check your connection and try again.'));
+   wj.disabled=false;wj.textContent='Join the waitlist'}};
+ draw()}
+SW.upgrade=()=>new Promise(res=>waitlistPage(async()=>{try{await SW.save()}catch{}hideFlow();res()}));
 function begin(user,key,data){
  SW.user=user;SW.key=key;SW.data=data;closeAuth();saveSession();
  try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch{} /* ask the browser not to evict this data */

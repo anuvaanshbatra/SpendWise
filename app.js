@@ -5,8 +5,6 @@
    DIRECT_KEY : TESTING ONLY. A key placed here is visible to everyone who opens the site. Never publish it. */
 const AI_CONFIG={ENDPOINT:'https://ai-proxy-worker.spendwise-main.workers.dev',MODEL:'nvidia/nemotron-3-ultra-550b-a55b:free',DIRECT_KEY:''};
 const aiReady=()=>!!AI_CONFIG.ENDPOINT||!!(AI_CONFIG.DIRECT_KEY&&AI_CONFIG.MODEL);
-/* Where the Copilot waitlist is posted. Change it if the route lives on another worker. */
-if(window.SW)SW.waitlistUrl=AI_CONFIG.ENDPOINT?AI_CONFIG.ENDPOINT.replace(/\/$/,'')+'/waitlist':'';
 
 const R=n=>(n<0?'-':'')+'₹'+Math.abs(Math.round(n)).toLocaleString('en-IN');
 const E=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -29,6 +27,7 @@ const css=document.createElement('style');css.textContent=`
 .w input,.cd input[type=number],.cd input[type=text]{width:100%;padding:14px;border-radius:12px;background:var(--panel);border:1px solid var(--line);color:#fff;font:inherit;margin-bottom:14px}
 .cd input[type=number],.cd input[type=text]{background:var(--bg)}
 .w input:focus,.cd input:focus{outline:0;border-color:var(--em)}
+.cd input[type=date]{width:100%;padding:14px;border-radius:12px;background:var(--bg);border:1px solid var(--line);color:#fff;font:inherit;margin-bottom:14px;color-scheme:dark}
 .pre{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}.pre button{padding:8px 14px;border-radius:999px;border:1px solid var(--line);font-size:13px;font-weight:500;color:var(--mu)}.pre button:hover{color:#fff;border-color:var(--em)}
 .rw{position:relative;padding:16px 16px 4px;border:1px solid var(--line);border-radius:16px;background:var(--panel);margin-bottom:12px}
 .rw .gr{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:0 12px}
@@ -144,17 +143,18 @@ const css=document.createElement('style');css.textContent=`
 document.head.append(css);
 
 /* ===== state ===== */
-let root,st,tab='home',cat='',nw='',invSec='ready',invH='',spendBusy=false,vamt=0,scur='INR',fxBusy=false,game=null,aiBusy=false,aiErr='',chatBusy=false,chatErr='';
+let root,st,tab='home',cat='',nw='',invSec='ready',invH='',vAmt='',vAi={t:'',busy:false,err:''},spCur='INR',edSp='',spendBusy=false,game=null,aiBusy=false,aiErr='',chatBusy=false,chatErr='';
 const landChat={msgs:[],busy:false,err:'',n:0};
 const $=id=>document.getElementById(id);
 const sum=(a,f)=>a.reduce((x,y)=>x+f(y),0);
 const mk=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')};
 const mname=()=>new Date().toLocaleString('en-IN',{month:'long',year:'numeric'});
-const blank=()=>({v:4,step:0,income:0,savings:0,debt:0,dependents:0,fixed:[],goals:[],done:false,rules:{e:null,i:null,em:null},cycles:[],spends:[],sug:null,pf:{},learn:{xp:0,jars:{s:0,v:0,d:0}},inv:{sip:{},fd:{},tx:{},loan:{}},fx:{rates:{}}});
+const pad2=n=>String(n).padStart(2,'0'),isoOf=t=>{const d=new Date(t);return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())},todayISO=()=>isoOf(Date.now()),minISO=()=>isoOf(Date.now()-1830*864e5);
+const blank=()=>({v:4,step:0,income:0,savings:0,debt:0,dependents:0,fixed:[],goals:[],done:false,rules:{e:null,i:null,em:null},cycles:[],spends:[],sug:null,pf:{},learn:{xp:0,jars:{s:0,v:0,d:0}},inv:{sip:{},fd:{},tx:{}}});
 
 /* ===== profile helpers (content lives in profiles.js) ===== */
 const SP=()=>window.SW_PROFILES||{order:[]},SL=()=>window.SW_LEARN||{dreams:[],levels:['Saver'],jars:{},whys:[],items:[]};
-const prof=()=>(SW.data&&SW.data.profile)||'',pd=()=>SP()[prof()]||{},isL=()=>prof()==='Learner',isT=()=>prof()==='Teen',isW=()=>prof()==='Working professional',isO=()=>prof()==='OCI';
+const prof=()=>(SW.data&&SW.data.profile)||'',pd=()=>SP()[prof()]||{},isL=()=>prof()==='Learner',isT=()=>prof()==='Teen',isW=()=>prof()==='Working professional';
 /* Teens have no investing bucket, so it is fixed at 0 (not a default split: the Save % stays theirs to type) */
 const fixTeen=()=>{if(isT())st.rules.i=0};
 const fxP=()=>pd().fx||FX,gpP=()=>pd().gp||GP,catP=()=>pd().cats||CAT,incLabel=()=>pd().inc||IN[prof()]||'Monthly income';
@@ -167,14 +167,27 @@ function syncLearn(){const j=st.learn.jars,g=st.goals[0];st.rules.e=j.v*10;st.ru
 function pfSafe(){const o={};(pd().q||[]).forEach(q=>{if(q.t==='text')return;const v=(st.pf||{})[q.k];if(v===undefined||v===''||(Array.isArray(v)&&!v.length))return;o[q.k]=v});return o}
 const months=d=>{if(!d)return 1;const[y,m]=d.split('-').map(Number),n=new Date();return Math.max(1,(y-n.getFullYear())*12+m-(n.getMonth()+1))};
 const thisCycle=()=>st.cycles.find(c=>c.k===mk());
-const need=g=>g.s>=g.t?0:Math.round((g.t-g.s)/Math.max(1,months(g.d)-(thisCycle()?1:0)));
+/* F27: a goal whose month has passed is left out of the monthly plan (it used to demand its whole remainder in one month). The person is asked for a new date. */
+const isLate=g=>{if(!g||!g.d||g.s>=g.t)return false;const[y,m]=String(g.d).split('-').map(Number),n=new Date();return!!y&&(y-n.getFullYear())*12+m-(n.getMonth()+1)<0};
+const need=g=>g.s>=g.t||isLate(g)?0:Math.round((g.t-g.s)/Math.max(1,months(g.d)-(thisCycle()?1:0)));
+/* ---- plan gating, dates and currency helpers ---- */
+const isPaid=()=>!!(SW.data&&SW.data.tier==='paid'),GOAL_FREE=2;
+const canAddGoal=()=>isPaid()||st.goals.length<GOAL_FREE;
+const mto=d=>{if(!d)return null;const[y,m]=String(d).split('-').map(Number);if(!y||!m)return null;const n=new Date();return(y-n.getFullYear())*12+m-(n.getMonth()+1)};
+const mlabel=d=>{const[y,m]=String(d).split('-').map(Number);return new Date(y,m-1,1).toLocaleString('en-IN',{month:'long',year:'numeric'})};
+const CURS=['USD','GBP','EUR','CAD','AUD','SGD','AED'];
+const CUR_BY_COUNTRY=[[/united states|\busa\b|\bus\b|america/,'USD'],[/united kingdom|\buk\b|britain|england|scotland|wales/,'GBP'],[/canada/,'CAD'],[/australia/,'AUD'],[/emirates|\buae\b|dubai|abu dhabi/,'AED'],[/singapore/,'SGD'],[/germany|france|italy|spain|netherlands|ireland|belgium|portugal|austria|finland|greece/,'EUR']];
+const curGuess=()=>{const c=String((st.pf||{}).ctry||'').toLowerCase();for(const[re,cu]of CUR_BY_COUNTRY)if(re.test(c))return cu;return'USD'};
+const fmtC=(c,n)=>{try{return new Intl.NumberFormat('en-US',{style:'currency',currency:c}).format(n)}catch{return c+' '+(+n).toFixed(2)}};
 const save=async()=>{
  if(st.chat&&st.chat.length>40)st.chat=st.chat.slice(-40); /* keep the vault small */
  SW.data.setup=st;
  try{await SW.save()}catch{toast('Could not save on this device. Storage may be full or blocked.',1)}};
 const dlabel=t=>{const d=new Date(t),n=new Date(),a=new Date(d.getFullYear(),d.getMonth(),d.getDate()),b=new Date(n.getFullYear(),n.getMonth(),n.getDate()),df=Math.round((b-a)/864e5);return df===0?'Today':df===1?'Yesterday':d.toLocaleDateString('en-IN',{day:'numeric',month:'short'})};
-function toast(t,bad){let x=$('tst');if(!x){x=document.createElement('div');x.id='tst';x.setAttribute('role','status');x.setAttribute('aria-live','polite');document.body.append(x)}
- x.setAttribute('role',bad?'alert':'status');x.textContent=t;x.className=bad?'bad':'';clearTimeout(toast.t);toast.t=setTimeout(()=>x.remove(),bad?7000:3200)}
+function toast(t,bad,o){o=o||{};let x=$('tst');if(!x){x=document.createElement('div');x.id='tst';x.setAttribute('role','status');x.setAttribute('aria-live','polite');document.body.append(x)}
+ x.setAttribute('role',bad?'alert':'status');x.textContent=t;x.className=bad?'bad':'';
+ x.style.cursor=o.go?'pointer':'';x.onclick=o.go?()=>{tab=o.go;edSp='';x.remove();render();scrollTo(0,0)}:null;
+ clearTimeout(toast.t);toast.t=setTimeout(()=>x.remove(),o.ms||(bad?7000:3200))}
 
 /* Plan numbers come only from what the user typed (rules) and what is calculated (bills, goals). */
 function plan(){
@@ -186,13 +199,16 @@ function plan(){
 /* Balances are derived from the records, so they can never drift out of sync. */
 function money(){
  const p=plan(),k=mk(),cy=thisCycle();
- const prior=sum(st.cycles.filter(c=>c.k<k),c=>c.s)-sum(st.spends.filter(x=>x.k<k),x=>x.a);
+ /* carry-over: what earlier allocated months left (or overspent). Spends dated before your first allocated month are listed but not counted. */
+ const first=st.cycles.map(c=>c.k).sort()[0];
+ const prior=first&&first<k?sum(st.cycles.filter(c=>c.k<k),c=>c.s)-sum(st.spends.filter(x=>x.k>=first&&x.k<k),x=>x.a):0;
  const spentM=sum(st.spends.filter(x=>x.k===k),x=>x.a);
  const base=cy?cy.s:(p.ready?p.safe:null),pool=base==null?null:prior+base;
- return{p,cy,spentM,pool,safeNow:pool==null?null:pool-spentM,
+ return{p,cy,spentM,pool,carry:prior,safeNow:pool==null?null:pool-spentM,
   emerg:st.savings+sum(st.cycles,c=>c.e),invest:sum(st.cycles,c=>c.i)};
 }
 
+const carryHTML=m=>{const c=Math.round(m.carry||0);if(!c)return'';return`<p class="fn" style="margin-top:6px">${c>0?`Includes ${R(c)} left over from earlier months.`:`${R(-c)} you overspent in earlier months is taken off.`} Unspent money rolls into the next month.</p>`};
 /* ===== setup wizard ===== */
 function field(l,f,v,ph,i,type='number'){return`<label>${l}</label><input data-f="${f}" ${i!=null?`data-i="${i}"`:''} type="${type}" ${type==='number'?'inputmode="numeric" min="0"':''} value="${v||''}" placeholder="${ph||''}">`}
 function qField(q){
@@ -265,7 +281,10 @@ function buckets(){
   bucket(CL.i,'Auto-investments',m.invest,null,p.iSet?`${R(p.i)} a month`:'Set a percentage in Plan')+
   bucket(CL.s,'Safe to spend',m.safeNow,m.pool>0&&m.safeNow!=null?m.safeNow/m.pool*100:null,m.cy?`${R(m.spentM)} spent this month`:p.ready?'Planned. Allocate to unlock it.':'Set your rules first')+'</div>';
 }
-function allocCard(){
+function lateNote(){if(isL())return'';const l=st.goals.filter(isLate);if(!l.length)return'';
+ return`<div class="al" style="margin-bottom:12px"><b>${l.length} goal${l.length>1?'s are':' is'} past the deadline</b><span>${E(l.map(g=>g.n||'Goal').join(', '))} ${l.length>1?'are':'is'} left out of this month's plan so your split still fits. Set a new date to bring ${l.length>1?'them':'it'} back.</span><button class="btn gho" data-a="go" data-t="goals">Open Goals</button></div>`}
+const allocCard=()=>lateNote()+allocCard0();
+function allocCard0(){
  const m=money(),p=m.p,cy=m.cy;
  if(isT()){
   if(cy)return`<div class="al ok"><b>✅ Done for ${E(cy.m)}</b><span>${R(cy.e)} saved · ${R(cy.b+cy.g)} bills + goals · ${R(cy.s)} to spend</span></div>`;
@@ -290,87 +309,6 @@ function rows(ev){return'<div class="fl">'+ev.map(e=>`<div><span>${E(e.x)}<small
 
 /* ===== tabs ===== */
 function tabHome(){return isL()?tabHomeL():isT()?tabHomeT():tabHomeG()}
-/* ===== F8: verdict before you buy ===== */
-const GOAL_LIMIT=2,CURS=['USD','GBP','EUR','CAD','AUD','AED','SGD','NZD','CHF','JPY'];
-const daysLeft=()=>{const d=new Date();return Math.max(1,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()-d.getDate()+1)};
-function verdictHTML(){
- const a=Math.round(vamt||0),m=money(),L=isL(),p=m.p;
- if(!(a>0))return'<p class="fn" style="margin:0">Type a price to see the verdict.</p>';
- if(m.safeNow==null)return`<div class="verd a"><span class="ic">!</span><div><strong>Set your plan first</strong><p>${L?'Fill your jars first':'Set your allocation rules in Plan first'}, so SpendWise knows what is safe to spend.</p></div></div>`;
- const left=m.safeNow,after=left-a,days=daysLeft(),jar=L?'Spend jar':'safe-to-spend money',note=m.cy?'':' This uses your plan. Allocate the month to lock it in.';
- let c,i,t,d;
- if(left<=0){c='r';i='✕';t='Not this month.';d=`Your ${jar} is already used up.`}
- else if(a<=left*.35){c='g';i='✓';t='Go ahead.';d=`You would still have ${R(after)} left, about ${R(after/days)} a day for ${days} more day${days>1?'s':''}.`}
- else if(a<=left){c='a';i='!';t='Think twice.';d=`It fits, but only ${R(after)} would be left, about ${R(after/days)} a day for the rest of the month.`}
- else{c='r';i='✕';t='Not this month.';const over=a-left;d=`That is ${R(over)} more than your ${jar}.`+(p.rq>0?` Paying it from goal money would delay your goals by about ${Math.ceil(over/(p.rq/30))} days.`:' It would have to come out of your savings.')}
- const btn=c!=='r'?'<button class="btn gho sm" style="margin-top:10px" data-a="vlog">Log it as a spend</button>':'';
- return`<div class="verd ${c}"><span class="ic">${i}</span><div><strong>${t}</strong><p>${d}${note}</p>${btn}</div></div>`}
-const verdictTile=()=>`<div class="tl" style="margin-top:10px;grid-template-columns:1fr"><button data-a="go" data-t="spends" data-v="1"><span class="ti">🤔</span>${isL()?'Can I buy it? Check your Spend jar':'Can I afford it? Check before you buy'}</button></div>`;
-const fxTile=()=>`<div class="tl" style="margin-top:10px;grid-template-columns:1fr"><button data-a="go" data-t="fx"><span class="ti">💱</span>Currency calculator</button></div>`;
-/* ===== F13: foreign currency for OCI, and the currency calculator ===== */
-const fxCur=()=>st.fx.cur||((st.pf||{}).cur)||'USD';
-const fxRate=c=>((st.fx.rates||{})[c]||{}).r||0;
-const fnum=(n,d=2)=>Number(n).toLocaleString('en-IN',{maximumFractionDigits:d});
-async function getRate(c){
- if(fxBusy)return;fxBusy=true;
- try{const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),8000);
-  const r=await fetch('https://open.er-api.com/v6/latest/'+encodeURIComponent(c),{signal:ctl.signal});clearTimeout(to);
-  const j=await r.json(),v=j&&j.rates&&+j.rates.INR;if(!(v>0))throw 0;
-  st.fx.rates[c]={r:Math.round(v*100)/100,at:Date.now(),live:1};await save();toast('Rate updated: 1 '+c+' = ₹'+st.fx.rates[c].r);
-  if(tab==='fx')rr();else{const e=$('sr');if(e)e.value=st.fx.rates[c].r}}
- catch{toast('Could not fetch the rate. Type it in yourself.',1)}
- fxBusy=false}
-function fxRes(){
- const c=fxCur(),r=fxRate(c),a=+st.fx.amt||0,dir=st.fx.dir||'toinr',sup=+((st.pf||{}).sup)||0;
- if(!(r>0))return'<p class="fn">Enter the rate, or tap Get today\'s rate.</p>';
- if(!(a>0))return'<p class="fn">Enter an amount.</p>';
- const row=(l,v,cls)=>`<div><span>${l}</span><b class="${cls||''}">${v}</b></div>`;
- const out=[[-3,'If the rate falls 3%'],[0,'At today\'s rate'],[3,'If the rate rises 3%']].map(([pc,l])=>{const q=r*(1+pc/100);
-  return dir==='toinr'?row(l+' (₹'+fnum(q)+')','₹'+fnum(a*q,0),pc===0?'pos':''):row(l+' (₹'+fnum(q)+')',c+' '+fnum(a/q),pc===0?'pos':'')}).join('');
- return`<div class="fl">${out}</div>`+(sup>0?`<div class="fp" style="margin-top:12px"><b>Your monthly family support</b><p>${R(sup)} a month costs about ${c} ${fnum(sup/r)} at this rate.</p></div>`:'')+
- '<p class="fn">A lower rate means each unit of your currency buys fewer rupees. Your bank or transfer service uses its own rate and adds fees, so treat this as a guide.</p>'}
-function tabFx(){
- const c=fxCur(),r=st.fx.rates[c]||{},dir=st.fx.dir||'toinr',ctry=(st.pf||{}).ctry;
- const opts=[...new Set([...CURS,c])];
- return`<button class="btn gho sm" data-a="go" data-t="home">← Back</button><h2 style="margin-top:16px">Currency calculator</h2><p class="sub">Convert between rupees and ${E(c)}${ctry?' for life in '+E(ctry):''}. Rates move every day, so check before you send money.</p>
- <div class="cd"><label for="fcur">Currency</label><select id="fcur" data-fx="cur">${opts.map(x=>`<option${x===c?' selected':''}>${x}</option>`).join('')}</select>
- <label for="fr">Rupees per 1 ${E(c)}</label><input id="fr" data-fx="rate" type="number" inputmode="decimal" min="0" step="0.01" value="${r.r||''}" placeholder="e.g. 105">
- <div class="row" style="margin:-4px 0 14px;align-items:center"><button class="btn gho sm" type="button" data-a="getrate">Get today's rate</button><span class="fn" style="margin:0">${r.at?(r.live?'Live rate from ':'Typed in on ')+new Date(r.at).toLocaleDateString('en-IN'):'No rate yet'}</span></div>
- <div class="cats" role="group" aria-label="Direction"><button type="button" class="chip" data-a="fxdir" data-v="toinr" aria-pressed="${dir==='toinr'}">${E(c)} → ₹</button><button type="button" class="chip" data-a="fxdir" data-v="frominr" aria-pressed="${dir==='frominr'}">₹ → ${E(c)}</button></div>
- <label for="fa">Amount in ${dir==='toinr'?E(c):'₹'}</label><input id="fa" data-fx="amt" type="number" inputmode="decimal" min="0" value="${st.fx.amt||''}" placeholder="0">
- <div id="fres" style="margin-top:6px">${fxRes()}</div></div>
- <p class="fn">Live rates by <a href="https://www.exchangerate-api.com" target="_blank" rel="noopener" style="text-decoration:underline">ExchangeRate-API</a>. If the live rate cannot load, type the rate in yourself.</p>`}
-function curRow(){return`<label for="sc">Currency</label><select id="sc">${['INR',...CURS].map(x=>`<option${scur===x?' selected':''}>${x}</option>`).join('')}</select>
- <div id="srw"${scur==='INR'?' hidden':''}><label for="sr" id="srl">Rupees per 1 ${E(scur)}</label><input id="sr" type="number" inputmode="decimal" min="0" step="0.01" value="${fxRate(scur)||''}" placeholder="e.g. 105">
- <div class="row" style="margin:-4px 0 14px"><button class="btn gho sm" type="button" data-a="getrate">Get today's rate</button></div></div>`}
-/* ===== F14: use the profile answers that were only being collected ===== */
-const mdiff=ym=>{const[y,m]=String(ym).split('-').map(Number);if(!y||!m)return null;const n=new Date();return(y-n.getFullYear())*12+m-(n.getMonth()+1)};
-function loanRes(){
- const l=st.inv.loan||{},P=+(st.pf||{}).eduloan||0,y=+l.y,r=+l.r;
- if(!(P>0))return'';
- if(!(y>0)||l.r===''||l.r==null||!(r>=0))return'<p class="fn">Enter the interest rate and how many years you will take to repay.</p>';
- const n=Math.round(y*12),i=r/1200,emi=i>0?P*i/(1-Math.pow(1+i,-n)):P/n,tot=emi*n;
- return`<div class="fl"><div><span>Monthly EMI</span><b class="pos">${R(emi)}</b></div><div><span>You repay in total</span><b>${R(tot)}</b></div><div><span>Of which interest</span><b>${R(tot-P)}</b></div>${st.income>0?`<div><span>EMI as a share of income</span><b>${Math.round(emi/st.income*100)}%</b></div>`:''}</div><p class="fn">An estimate that starts from the amount you owe today. Interest can build up before repayment starts, so check your lender's terms.</p>`}
-function insightCards(){
- const pf=st.pf||{},p=plan(),m=money(),P=prof(),out=[],card=(t,b)=>`<div class="fp"><b>${E(t)}</b><p>${b}</p></div>`;
- const plural=n=>n+' month'+(n===1?'':'s');
- if(P==='Young adult'&&+pf.eduloan>0){
-  const n=pf.repay?mdiff(pf.repay):null,l=st.inv.loan||{};
-  out.push(`<div class="cd" style="margin-bottom:10px"><b>Your education loan</b><p class="s2" style="margin:6px 0 14px">You owe ${R(+pf.eduloan)}. ${n==null?'Add the month repayment starts in Edit setup to see a countdown.':n>0?'Repayment starts in about '+plural(n)+'.':'Repayment has started, or starts this month.'}</p>
-  <label for="ln-r">Interest rate (% a year)</label><input id="ln-r" data-c="loan.r" type="number" inputmode="decimal" min="0" max="30" step="0.1" value="${l.r??''}" placeholder="From your loan papers">
-  <label for="ln-y">Years to repay</label><input id="ln-y" data-c="loan.y" type="number" inputmode="decimal" min="0" max="30" value="${l.y??''}" placeholder="e.g. 10">
-  <div id="ires">${loanRes()}</div></div>`)}
- const k=P==='Armed forces'?'post':P==='All India Services'?'transfer':null;
- if(k&&pf[k]){const n=mdiff(pf[k]),what=k==='post'?'posting':'transfer';
-  out.push(card('Your next '+what,n==null?'':n>0?`Expected in about ${plural(n)}. A move often means paying for two homes for a few weeks. ${p.fx>0?`Setting aside ${R(Math.ceil(p.fx/n))} a month would build one month of fixed costs (${R(p.fx)}) by then.`:'Add your fixed costs in Edit setup to size a buffer.'}`:`That month has arrived or passed. Update the date in Edit setup so your buffer plan stays current.`))}
- if(P==='OCI'){const sup=+pf.sup||0,c=fxCur(),r=fxRate(c);
-  if(sup>0)out.push(card('Family support in India',`${R(sup)} a month${st.income>0?`, about ${Math.round(sup/st.income*100)}% of your India income`:''}.${r>0?` At today's rate that is about ${c} ${fnum(sup/r)}.`:' Set a rate in the currency calculator to see it in '+E(c)+'.'}`))}
- if(P==='BPL family'){const hh=+pf.hh||0,sch=Array.isArray(pf.sch)?pf.sch:[],q=((pd().q||[]).find(x=>x.k==='sch')||{}).o||[],miss=q.filter(x=>!sch.includes(x));
-  if(hh>0&&st.income>0)out.push(card('Income per person',`Your household income works out to about ${R(st.income/hh)} per person a month, or ${R(st.income/hh/30)} a day.`));
-  if(miss.length)out.push(card('Support you may not be claiming',`You did not tick: ${miss.map(E).join(', ')}. Eligibility depends on your state and your family, so ask at your nearest Common Service Centre. Never pay anyone to approve a benefit.`))}
- if(P==='Senior citizen'&&+pf.med>0){const med=+pf.med;
-  out.push(card('Medical money',`You spend about ${R(med)} a month on medicines and doctors${st.income>0?', '+Math.round(med/st.income*100)+'% of your income':''}. A year of that is ${R(med*12)}, and many families keep about that much in a separate medical reserve.${m.emerg>0?` Your savings and emergency fund stand at ${R(m.emerg)}.`:''}`))}
- return out.length?'<div class="h3s">Your numbers</div>'+out.join(''):''}
 function tabHomeG(){
  const m=money(),p=m.p,cy=m.cy,first=(SW.user.name||'there').split(' ')[0],neg=m.safeNow!=null&&m.safeNow<0;
  const left=m.pool>0&&m.safeNow!=null?Math.max(0,m.safeNow/m.pool*100):0;
@@ -379,14 +317,14 @@ function tabHomeG(){
  return`<h2>Hi ${E(first)} 👋</h2><p class="sub">${mname()}<span class="pbadge">${pd().ic||''} ${E(prof())}</span></p>
  <div class="hc ${neg?'neg':''}"><small>Safe to spend ${cy?'now':'(planned)'}</small><b>${m.safeNow==null?'₹ —':R(m.safeNow)}</b>
  ${m.pool>0&&m.safeNow!=null?`<div class="pb" style="--c:${neg?'var(--rd)':left<25?'var(--am)':'var(--em)'}"><i style="width:${left}%"></i></div>`:''}
- <p>${cy?`${R(m.spentM)} spent of ${R(m.pool)} this month`:p.ready?'Planned for '+mname()+'. Allocate when your income arrives.':'Enter your allocation rules to see how much you can spend.'}</p>
+ <p>${cy?`${R(m.spentM)} spent of ${R(m.pool)} this month`:p.ready?'Planned for '+mname()+'. Allocate when your income arrives.':'Enter your allocation rules to see how much you can spend.'}</p>${carryHTML(m)}
  <div class="hb">${cta}</div></div>
  <div class="tl"><button data-a="go" data-t="spends" data-f="1"><span class="ti">${I.plus}</span>Add spend</button><button data-a="go" data-t="plan"><span class="ti">${I.plan}</span>Allocate</button><button data-a="go" data-t="plan"><span class="ti">${I.spark}</span>AI plan</button><button data-a="go" data-t="goals"><span class="ti">${I.goals}</span>Goals</button></div>
- <div class="tl" style="margin-top:10px;grid-template-columns:1fr"><button data-a="go" data-t="ask"><span class="ti">${I.ask}</span>Ask the advisor how to plan ahead</button></div>${verdictTile()}${isO()?fxTile():''}${isW()?invTile():''}
+ <div class="tl" style="margin-top:10px;grid-template-columns:1fr"><button data-a="go" data-t="ask"><span class="ti">${I.ask}</span>Ask the advisor how to plan ahead</button></div>${isW()?invTile():''}${pd().fxc?fxTile():''}
+ ${verdictCard()}${pfCards()}
  <div class="h3s">This month</div>
  <div class="st3"><div><small>Income</small><b>${R(st.income)}</b></div><div><small>Committed</small><b>${R(p.fx+p.rq)}</b></div><div><small>Spent</small><b>${R(m.spentM)}</b></div></div>
  <div class="h3s">Recent</div>${ev.length?rows(ev)+'<div style="margin-top:12px"><button class="btn gho sm" data-a="go" data-t="spends">See all spends</button></div>':'<div class="em">Nothing yet. Add your first spend and it will show up here.</div>'}
-${insightCards()}
  ${tipsHTML()}`;
 }
 
@@ -415,8 +353,9 @@ function tabHomeL(){
  return`<h2>Hey ${E(first)}! 🎒</h2><p class="sub">${mname()}</p>${xpBar()}
  <div class="hc ${sp!=null&&sp<0?'neg':''}"><small>${J.s.ic} Spend jar ${cy?'right now':'(planned)'}</small><b>${sp==null?'₹ —':R(sp)}</b>
  ${sp!=null&&m.pool>0?`<div class="pb" style="--c:${left<25?'var(--am)':'var(--em)'}"><i style="width:${left}%"></i></div>`:''}
- <p>${cy?`${R(m.spentM)} spent so far. When this jar is empty, you wait until next month!`:'Your pocket money is not split yet. Fill your jars to start.'}</p><div class="hb">${cta}</div></div>
- ${verdictTile()}<div class="h3s">Your jars</div>${jar3()}
+ <p>${cy?`${R(m.spentM)} spent so far. When this jar is empty, you wait until next month!`:'Your pocket money is not split yet. Fill your jars to start.'}</p>${carryHTML(m)}<div class="hb">${cta}</div></div>
+ ${verdictCard()}
+ <div class="h3s">Your jars</div>${jar3()}
  <div class="h3s">Your dream</div>${dreamCard()||'<div class="em">No dream yet.</div>'}
  <div class="h3s">Today’s game</div><div id="gm">${gameHTML()}</div>
  <div class="h3s">Why are we doing this?</div>${whysHTML()}`;
@@ -457,8 +396,9 @@ function tabHomeT(){
  <div class="stk">${sk?'🔥 '+sk+' day'+(sk>1?'s':'')+' streak':'🔥 Log a spend to start a streak'}</div>
  <div class="hc ${neg?'neg':''}"><small>Left to spend</small><b>${m.safeNow==null?'₹ —':R(m.safeNow)}</b>
  ${m.pool>0&&m.safeNow!=null?`<div class="pb" style="--c:${neg?'var(--rd)':left<25?'var(--am)':'var(--em)'}"><i style="width:${left}%"></i></div>`:''}
- <p>${cy?R(m.spentM)+' spent this month':p.ready?'Tap Money in when it lands.':'Pick how much to save.'}</p><div class="hb">${cta}</div></div>
- <div class="tt3"><button data-a="go" data-t="spends" data-f="1"><span>➕</span>Spend</button><button data-a="go" data-t="plan"><span>💰</span>Save</button><button data-a="go" data-t="goals"><span>🎯</span>Goals</button></div>${verdictTile()}
+ <p>${cy?R(m.spentM)+' spent this month':p.ready?'Tap Money in when it lands.':'Pick how much to save.'}</p>${carryHTML(m)}<div class="hb">${cta}</div></div>
+ <div class="tt3"><button data-a="go" data-t="spends" data-f="1"><span>➕</span>Spend</button><button data-a="go" data-t="plan"><span>💰</span>Save</button><button data-a="go" data-t="goals"><span>🎯</span>Goals</button></div>
+ ${verdictCard()}
  <div class="h3s">Recent</div>${ev.length?rows(ev):'<div class="em">Nothing yet.</div>'}
  ${tipsHTML()}`;
 }
@@ -529,15 +469,15 @@ function tabInvest(){
  <p class="fn" style="margin-top:18px">${E(V.note||'')}</p>`;
 }
 function tabSpends(){
- const m=money(),list=[...st.spends].sort((a,b)=>b.t-a.t).slice(0,60),groups=[];
+ const ed=edSp?st.spends.find(x=>x.id===edSp)||null:null,m=money(),list=[...st.spends].sort((a,b)=>b.t-a.t).slice(0,60),groups=[];
  list.forEach(s=>{const l=dlabel(s.t);let g=groups[groups.length-1];if(!g||g.l!==l){g={l,items:[]};groups.push(g)}g.items.push(s)});
- return`<h2>Spends</h2><p class="sub">${R(m.spentM)} spent in ${mname()}</p>${isL()?nwSummary():''}
- <div class="cd" style="margin-bottom:14px"><label for="va">${isL()?'Want to buy something? Check your Spend jar first':'Thinking of buying something? Check first'}</label><input id="va" type="number" inputmode="numeric" min="0" placeholder="Price in ₹" value="${vamt||''}"><div id="vres">${verdictHTML()}</div></div>
- <div class="cd">${isO()?curRow():''}<label for="sa">Amount (<span id="sal">${scur==='INR'?'₹':scur}</span>)</label><input id="sa" type="number" inputmode="numeric" min="0" placeholder="0">
+ return`<h2>Spends</h2><p class="sub">${R(m.spentM)} spent in ${mname()}</p>${carryHTML(m)}${isL()?nwSummary():''}${pd().fxc?'<div style="margin:-8px 0 14px"><button class="btn gho sm" data-a="go" data-t="fxc">💱 Currency calculator</button></div>':''}
+ <div class="cd">${ed?'<p class="fn" style="margin:0 0 12px">Editing a spend. Change it, then tap Save changes.</p>':''}${pd().fxc?fxSpendHTML():''}<label for="sa">${pd().fxc?'Amount':'Amount (₹)'}</label><input id="sa" type="number" inputmode="${pd().fxc?'decimal':'numeric'}" min="0" step="any" placeholder="0" value="${ed?(ed.cur?ed.fa:ed.a):''}">${pd().fxc?'<p class="fn" id="sprev" style="margin:-6px 0 12px"></p>':''}
+ <label for="sd">Date</label><input id="sd" type="date" max="${todayISO()}" min="${minISO()}" value="${ed?isoOf(ed.t):todayISO()}">
  <div class="cats" role="group" aria-label="Category">${catP().map(c=>`<button type="button" class="chip" data-a="cat" data-c="${c}" aria-pressed="${cat===c}">${c}</button>`).join('')}</div>
- ${isL()?nwHTML():''}<input id="sn" type="text" maxlength="60" placeholder="Note (optional)" aria-label="Note">
- <button class="btn pri" style="width:100%" data-a="spend">Add spend</button></div>
- ${groups.length?groups.map(g=>`<div class="dh"><span>${g.l}</span><span>${R(sum(g.items,x=>x.a))}</span></div><div class="fl">${g.items.map(s=>`<div><span>${E(s.n||s.c||'Spend')}<small>${s.c?E(s.c):'Uncategorised'}${s.w?' · '+(s.w==='n'?'Need':'Want'):''}${s.fx?' · '+E(s.fx.c)+' '+fnum(s.fx.amt)+' at ₹'+fnum(s.fx.rate):''}</small></span><span class="rr"><b class="neg2">-${R(s.a)}</b><button data-a="delspend" data-id="${E(s.id)}" aria-label="Delete this spend">×</button></span></div>`).join('')}</div>`).join(''):'<div class="em" style="margin-top:18px">No spends yet. Add your first one above.</div>'}`;
+ ${isL()?nwHTML():''}<input id="sn" type="text" maxlength="60" placeholder="Note (optional)" aria-label="Note" value="${ed?E(ed.n||''):''}">
+ <button class="btn pri" style="width:100%" data-a="spend">${ed?'Save changes':'Add spend'}</button>${ed?'<button class="btn gho" style="width:100%;margin-top:10px" data-a="cancelspend">Cancel</button>':''}</div>
+ ${groups.length?groups.map(g=>`<div class="dh"><span>${g.l}</span><span>${R(sum(g.items,x=>x.a))}</span></div><div class="fl">${g.items.map(s=>`<div><span>${E(s.n||s.c||'Spend')}<small>${s.c?E(s.c):'Uncategorised'}${s.w?' · '+(s.w==='n'?'Need':'Want'):''}${s.cur?' · '+E(fmtC(s.cur,s.fa))+' at ₹'+s.rate:''}</small></span><span class="rr"><b class="neg2">-${R(s.a)}</b><button data-a="editspend" data-id="${E(s.id)}" aria-label="Edit this spend">✎</button><button data-a="delspend" data-id="${E(s.id)}" aria-label="Delete this spend">×</button></span></div>`).join('')}</div>`).join(''):'<div class="em" style="margin-top:18px">No spends yet. Add your first one above.</div>'}`;
 }
 function sugPanel(){
  const s=st.sug;if(!s)return'';
@@ -567,12 +507,116 @@ function tabGoals(){return isL()?tabDream():tabGoalsG()}
 function tabGoalsG(){
  const p=plan(),now=new Date().getFullYear()*12+new Date().getMonth()+1;
  return`<h2>Goals</h2><p class="sub">${st.goals.length?`${st.goals.length} goal${st.goals.length>1?'s':''} · ${R(p.rq)} a month needed`:'Save for what matters, one month at a time.'}</p>
- ${st.goals.length?st.goals.map(g=>{
-  const pct=Math.min(100,g.t?g.s/g.t*100:0),n=need(g),late=g.d&&g.s<g.t&&((+g.d.slice(0,4))*12+ +g.d.slice(5))<now;
+ ${st.goals.length?st.goals.map((g,gi)=>{
+  const pct=Math.min(100,g.t?g.s/g.t*100:0),n=need(g),late=isLate(g);
   const chip=g.s>=g.t?'Funded ✅':late?'Past deadline':p.ready?(p.safe<0?'Needs attention':'On track ✅'):'';
-  return`<div class="gc"><h4>${E(g.n||'Goal')}${chip?`<span class="ch ${late||(p.ready&&p.safe<0)?'w2':''}">${chip}</span>`:''}</h4><div class="pb"><i style="width:${pct}%"></i></div><p><span>${R(g.s)} of ${R(g.t)}</span><span>${n?R(n)+' a month':''}</span></p></div>`}).join(''):'<div class="em">No goals yet.</div>'}
- ${st.goals.length>=GOAL_LIMIT&&SW.data.tier!=='paid'?'<p class="fn">Core includes 2 goal vaults. Copilot, coming soon, adds unlimited vaults.</p>':''}<div style="margin-top:16px"><button class="btn gho" data-a="edit" data-s="goals">${st.goals.length?'Edit goals':'Add a goal'}</button></div>`;
+  return`<div class="gc"><h4>${E(g.n||'Goal')}${chip?`<span class="ch ${late||(p.ready&&p.safe<0)?'w2':''}">${chip}</span>`:''}</h4><div class="pb"><i style="width:${pct}%"></i></div><p><span>${R(g.s)} of ${R(g.t)}</span><span>${n?R(n)+' a month':''}</span></p>${late?`<p class="fn">Left out of your monthly plan until you set a new date. Spread the rest over:</p><div class="cats">${[3,6,12].map(m=>`<button type="button" class="chip" data-a="gextend" data-i="${gi}" data-m="${m}">${m} months</button>`).join('')}</div>`:''}</div>`}).join(''):'<div class="em">No goals yet.</div>'}
+ <div style="margin-top:16px"><button class="btn gho" data-a="edit" data-s="goals">${st.goals.length?'Edit goals':'Add a goal'}</button></div>${!isPaid()&&st.goals.length>=GOAL_FREE?'<p class="fn">Core includes 2 goal vaults. <button type="button" class="chip" data-a="waitlist">Join the Copilot waitlist</button> for unlimited goals.</p>':''}`;
 }
+/* ===== F8: verdict before you buy (rules-based and free; the AI explanation is part of Copilot) ===== */
+function verdictHTML(){
+ const amt=Math.round(+vAmt||0),m=money(),p=m.p;
+ if(!(amt>0))return'<p class="fn">Type a price. SpendWise shows what it does to your safe-to-spend and your goals before you pay.</p>';
+ if(m.safeNow==null)return'<p class="fn">Set your allocation rules first, so SpendWise knows your safe-to-spend. <button type="button" class="chip" data-a="go" data-t="plan">Open Plan</button></p>';
+ const left=m.safeNow,after=left-amt,now=new Date(),dl=new Date(now.getFullYear(),now.getMonth()+1,0).getDate()-now.getDate()+1,dd=`${dl} more day${dl>1?'s':''}`;
+ let c='g',ic='#ok',t,d;
+ if(left<=0){c='r';ic='#no';t='Not this month.';d='Your safe-to-spend is already used up. This would have to come out of money set aside for bills and goals.'}
+ else{const pct=amt/left;
+  if(pct<=.35){t='Go ahead.';d=`You would still have ${R(after)} safe to spend, about ${R(after/dl)} a day for ${dd}.`}
+  else if(pct<=1){c='a';ic='#wa';t='Think twice.';d=`You can afford it, but only ${R(after)} would be left, about ${R(after/dl)} a day for ${dd}.`}
+  else{c='r';ic='#no';t='Not this month.';const over=-after,dg=p.rq>0?Math.ceil(over/(p.rq/30)):0;
+   d=`That is ${R(over)} over your safe-to-spend.`+(dg>0?` Paying for it from your goal money would set your goals back about ${dg} day${dg>1?'s':''}.`:' It would eat into money meant for bills.')}}
+ const note=m.cy?'':'<p class="fn">Based on your planned split. Allocate to make it final.</p>';
+ const act=c==='r'?'':'<button type="button" class="btn gho sm" style="margin-top:12px" data-a="logv">I bought it: log the spend</button>';
+ let ai;
+ if(isPaid()){
+  ai=(vAi.busy?'<p class="fn">Thinking…</p>':vAi.t?`<div class="fp" style="margin-top:12px"><b>${I.spark} AI view</b>${chatFmt(vAi.t)}</div>`:vAi.err?`<div class="er2" role="alert" style="margin-top:12px">${E(vAi.err)}</div>`:'')+
+   `<div><button type="button" class="btn gho sm" style="margin-top:12px" data-a="vexplain"${vAi.busy?' disabled':''}>Explain with AI</button></div>`;
+ }else ai='<p class="fn">An AI explanation of each verdict is part of Copilot, which is not on sale yet. <button type="button" class="chip" data-a="waitlist">Join the waitlist</button></p>';
+ return`<div class="verd ${c}" role="status"><span class="ic"><svg class="i"><use href="${ic}"/></svg></span><div><strong>${t}</strong><p>${d}</p></div></div>${note}${act}${ai}`;
+}
+const verdictCard=()=>`<div class="h3s">Can I afford it?</div><div class="cd"><label for="va">Price (₹)</label><input id="va" type="number" inputmode="numeric" min="0" placeholder="e.g. 2400" value="${E(vAmt)}"><div id="vres">${verdictHTML()}</div></div>`;
+async function vExplain(){
+ const amt=Math.round(+vAmt||0);if(!(amt>0)||vAi.busy)return;
+ if(!aiReady())return toast('AI is not connected yet.',1);
+ vAi={t:'',busy:true,err:''};$('vres').innerHTML=verdictHTML();
+ try{
+  const sys='You are SpendWise Advisor. The person is deciding whether to buy something. Use only the JSON numbers. In under 90 words, say what this purchase does to their month and their goals, and suggest one alternative (wait, a smaller version, or save first). General guidance only, not regulated advice. Never name products, banks or funds. Never promise returns.';
+  const t=await aiAsk([{role:'system',content:sys},{role:'user',content:JSON.stringify({purchase_amount:amt,numbers:chatSnap()})}],{temperature:.3,max_tokens:700,where:tab,what:'The AI explanation is ready.'});
+  vAi={t:t||'',busy:false,err:t?'':'The AI sent an empty reply. Please try again.'};
+ }catch(e){vAi={t:'',busy:false,err:(e&&e.message)||'Something went wrong. Please try again.'}}
+ if($('vres'))$('vres').innerHTML=verdictHTML();
+}
+
+/* ===== F14: profile answers that now change what the person sees ===== */
+function pfCards(){
+ const pf=st.pf||{},inc=st.income||0,p=plan(),pr=prof(),c=[];
+ const card=(e,t,b,btn)=>c.push(`<div class="fp"><b>${e} ${E(t)}</b><p>${b}</p>${btn||''}</div>`);
+ const hasFx=re=>st.fixed.some(x=>re.test(x.n||''));
+ const addBtn=(n,v)=>`<button type="button" class="btn gho sm" style="margin-top:10px" data-a="addfx" data-n="${E(n)}" data-v="${Math.round(v)}">Add ${R(v)} to my fixed costs</button>`;
+ const pct=v=>inc>0?` That is about ${Math.round(v/inc*100)}% of your income.`:'';
+ const loan=+pf.eduloan||0;
+ if(pr==='Young adult'&&loan>0){
+  const n=mto(pf.repay),when=!pf.repay?'Add the month repayment starts (Edit setup) to see a countdown.':n>0?`Repayment starts in ${n} month${n>1?'s':''} (${E(mlabel(pf.repay))}).`:'Your repayment month has arrived or passed.';
+  card('🎓','Your education loan',`${when} Before interest, ${R(loan)} over 5 years is about ${R(loan/60)} a month.${pct(loan/60)} Over 10 years it is about ${R(loan/120)} a month. Interest comes on top, so check your loan terms.`);
+ }
+ const med=+pf.med||0;
+ if(pr==='Senior citizen'&&med>0){const has=hasFx(/medic|doctor|health/i);
+  card('💊','Your medical costs',`${R(med)} a month.${pct(med)} `+(has?'It is already in your fixed costs, so safe-to-spend accounts for it.':'It is not in your fixed costs yet, so your safe-to-spend does not count it.'),has?'':addBtn('Medicines and doctor',med));
+ }
+ if(pr==='OCI'){
+  const sup=+pf.sup||0,ct=String(pf.ctry||'').trim();
+  if(sup>0){const has=hasFx(/support|family/i);
+   card('👨‍👩‍👧','Family support in India',`${R(sup)} a month.${pct(sup)} `+(has?'It is already in your fixed costs.':'It is not in your fixed costs yet, so your safe-to-spend does not count it.'),has?'':addBtn('Family support',sup));}
+  if(ct)card('🌏','Living in '+ct,`Your currency calculator starts with ${curGuess()}. Foreign-currency spends are saved in rupees at the rate you enter.`,'<button type="button" class="btn gho sm" style="margin-top:10px" data-a="go" data-t="fxc">Open the currency calculator</button>');
+ }
+ const mv=pr==='Armed forces'?{d:pf.post,w:'posting'}:pr==='All India Services'?{d:pf.transfer,w:'transfer'}:null;
+ if(mv&&mv.d){
+  const n=mto(mv.d),g=st.goals.find(x=>/reloc|moving|posting|transfer/i.test(x.n||''));
+  let b=n>0?`Your next ${mv.w} is in ${n} month${n>1?'s':''} (${E(mlabel(mv.d))}). `:`The ${mv.w} month you entered has passed. Update it in Edit setup. `,btn='';
+  if(!g){b+='You have no relocation goal yet. A small fund covers travel and a short stretch of double costs.';btn=`<button type="button" class="btn gho sm" style="margin-top:10px" data-a="addgoal" data-n="Relocation fund" data-d="${E(mv.d)}">Add a relocation goal for that month</button>`}
+  else if(g.t>0&&g.s>=g.t)b+=`Your goal "${E(g.n)}" is fully funded.`;
+  else if(g.d&&g.d>mv.d)b+=`Your goal "${E(g.n)}" is due after the ${mv.w}. Move its date earlier in Goals.`;
+  else b+=`Your goal "${E(g.n)}" still needs ${R(Math.max(0,g.t-g.s))}, about ${R(need(g))} a month.`;
+  card('📦','Next '+mv.w,b,btn);
+ }
+ if(pr==='BPL family'){
+  const hh=+pf.hh||0;
+  if(hh>0&&inc>0)card('👪','Per person',`Your income works out to ${R(inc/hh)} per person a month, about ${R(inc/hh/30)} a day. Your fixed costs are ${R(p.fx/hh)} per person.`);
+  const q=(pd().q||[]).find(x=>x.k==='sch');
+  if(q&&Array.isArray(pf.sch)){const miss=q.o.filter(o=>!pf.sch.includes(o));
+   card('🏡','Supports to ask about',miss.length?`You did not tick: ${E(miss.join(', '))}. Eligibility differs by state and family, so ask at a Common Service Centre. Nothing here promises a benefit.`:'You ticked every support listed. Keep your papers up to date.');}
+ }
+ return c.length?'<div class="h3s">From your answers</div>'+c.join(''):'';
+}
+
+/* ===== F13: foreign-currency spends and the currency calculator ===== */
+const fxTile=()=>`<div class="tl" style="margin-top:10px;grid-template-columns:1fr"><button data-a="go" data-t="fxc"><span class="ti">💱</span>Currency calculator: ${curGuess()} and ₹</button></div>`;
+function fxSpendHTML(){const sv=st.fxr[spCur],ed=edSp?st.spends.find(x=>x.id===edSp):null,rv=ed&&ed.cur===spCur?ed.rate:(sv?sv.r:'');
+ return`<label for="sc">Currency</label><select id="sc"><option value="INR"${spCur==='INR'?' selected':''}>₹ INR</option>${CURS.map(x=>`<option${x===spCur?' selected':''}>${x}</option>`).join('')}</select><div id="srw"${spCur==='INR'?' hidden':''}><label for="sr">Rate (₹ for 1 <span id="scn">${spCur}</span>)</label><input id="sr" type="number" inputmode="decimal" min="0" step="any" value="${rv}" placeholder="From your bank or card"></div>`}
+function spPrev(){
+ const o=$('sprev');if(!o)return;const sc=$('sc'),cur=sc?sc.value:'INR';
+ if(cur==='INR'){o.textContent='';return}
+ const fa=+($('sa').value)||0,r=+($('sr').value)||0;
+ o.textContent=fa>0&&r>0?'= '+R(fa*r)+' at ₹'+r+' per '+cur:'Enter the amount and the rate to see the rupee value.'}
+function fxRes(){
+ const x=st.fxc,cur=x.cur||curGuess(),r=+x.rate,a=+x.amt,i=+x.inr;
+ if(!(r>0))return'<p class="fn">Enter the exchange rate (rupees for 1 '+cur+'), or tap Get today’s rate.</p>';
+ if(!(a>0)&&!(i>0))return'<p class="fn">Enter an amount in '+cur+' or in rupees.</p>';
+ const sv=st.fxr[cur];
+ return`<div class="fl">${a>0?`<div><span>${E(fmtC(cur,a))} is<small>at ₹${r} per ${cur}</small></span><b class="pos">${R(a*r)}</b></div>`:''}${i>0?`<div><span>${R(i)} is<small>at ₹${r} per ${cur}</small></span><b>${E(fmtC(cur,i/r))}</b></div>`:''}</div>
+ <p class="fn">${sv&&sv.r===r?'Rate saved: '+dlabel(sv.at)+'. ':''}Banks and cards add fees and use their own rate, so what you actually pay or receive can differ.</p>`}
+function tabFx(){
+ const x=st.fxc,cur=x.cur||curGuess(),ct=String((st.pf||{}).ctry||'').trim();
+ return`<button class="btn gho sm" data-a="go" data-t="spends">← Back</button><h2 style="margin-top:16px">Currency calculator</h2><p class="sub">Convert between ${E(ct||'a foreign currency')} and rupees. You set the rate, so the numbers match what your bank gives you.</p>
+ <div class="cd"><label for="x-c">Currency</label><select id="x-c" data-x="cur">${CURS.map(c=>`<option${c===cur?' selected':''}>${c}</option>`).join('')}</select>
+ <label for="x-r">Rate (₹ for 1 ${cur})</label><input id="x-r" data-x="rate" type="number" inputmode="decimal" min="0" step="any" value="${x.rate}" placeholder="From your bank or card">
+ <button class="btn gho sm" data-a="fxget" style="margin-bottom:16px">Get today’s rate</button>
+ <label for="x-a">Amount in ${cur}</label><input id="x-a" data-x="amt" type="number" inputmode="decimal" min="0" step="any" value="${x.amt}" placeholder="0">
+ <label for="x-i">Amount in ₹</label><input id="x-i" data-x="inr" type="number" inputmode="decimal" min="0" step="any" value="${x.inr}" placeholder="0">
+ <div id="xres">${fxRes()}</div>
+ <p class="fn">“Get today’s rate” asks a public exchange-rate service for a market rate. No personal data is sent. It is a guide, not what your bank will charge.</p></div>`}
+
 const CHAT_HELLO='Hi. I am the SpendWise advisor. Ask how to plan ahead, fix a tight month, or choose the next money step. I give general guidance for people in India — not regulated financial advice.';
 const CHAT_SYS_PUBLIC=`You are SpendWise Advisor, a calm, plain-spoken money coach for people in India using the SpendWise app.
 
@@ -612,7 +656,7 @@ function chatSnap(){
   const p=plan(),m=money();
   return{profile:SW.data.profile||'unspecified',monthly_income:st.income,existing_savings:st.savings,debts_owed:st.debt||0,about_you:pfSafe(),dependents:st.dependents||0,
     fixed_monthly_total:p.fx,emergency_pct:st.rules.e,invest_pct:st.rules.i,emergency_target_months:st.rules.em,
-    goals:st.goals.map(g=>({name:String(g.n||'Goal').slice(0,40),target:g.t,saved:g.s,months_left:months(g.d),monthly_needed:need(g)})),
+    goals:st.goals.map(g=>({name:String(g.n||'Goal').slice(0,40),target:g.t,saved:g.s,months_left:months(g.d),monthly_needed:need(g),past_deadline:isLate(g)})),
     spent_this_month:m.spentM,safe_to_spend_now:m.safeNow,safe_to_spend_planned:p.safe,month_allocated:!!m.cy,
     emergency_saved:m.emerg,invested_so_far:m.invest};
 }
@@ -644,7 +688,7 @@ async function sendChat(store,text,app){
     const history=store.msgs.filter(m=>!m.local).slice(-10);
     while(history.length&&history[0].role!=='user')history.shift();
     const messages=[{role:'system',content:sys+(snap?'\n\nNumbers snapshot (no identity):\n'+JSON.stringify(snap):'')},...history];
-    const reply=(await aiAsk(messages,{temperature:.45,max_tokens:900})).trim();
+    const reply=(await aiAsk(messages,{temperature:.45,max_tokens:900,where:app?'ask':'',what:'The advisor has replied.'})).trim();
     if(!reply)throw new Error('The advisor sent an empty reply. Please try again.');
     store.msgs.push({role:'assistant',content:reply.slice(0,4000)});
   }catch(e){
@@ -696,7 +740,7 @@ async function makeWeeklyStatement(){
  try{
   const snap=weeklySnapshot(),range=weekRange();
   const system=`You are SpendWise, a careful personal-finance habit analyst. Write a concise, useful weekly financial habits overview for a PDF report. Use only the supplied data. Never invent transactions, trends, comparisons, motives, or financial facts. If data is sparse, say so plainly. Distinguish recorded spending from monthly plan context. Do not present yourself as a regulated financial adviser. Return plain text only with these exact section headings: WEEK AT A GLANCE; WHERE THE MONEY WENT; HABITS AND PATTERNS; ONE THING TO IMPROVE; NEXT WEEK'S PLAN. Use short paragraphs and bullets with ASCII characters, no markdown tables. Mention currency as INR / rupees. Keep it under 550 words.`;
-  const overview=(await aiAsk([{role:'system',content:system},{role:'user',content:'Create the weekly overview for '+range.from+' to '+range.to+'. Here is the financial data (JSON):\n'+JSON.stringify(snap)}],{temperature:.25,max_tokens:900,timeout:60000})).trim();
+  const overview=(await aiAsk([{role:'system',content:system},{role:'user',content:'Create the weekly overview for '+range.from+' to '+range.to+'. Here is the financial data (JSON):\n'+JSON.stringify(snap)}],{temperature:.25,max_tokens:900,noDone:true})).trim();
   if(!overview)throw new Error('The AI returned an empty overview. Try again.');
   const {jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4'});const W=210,H=297,left=18,right=18;
   doc.setFillColor(3,7,18);doc.rect(0,0,W,H,'F');
@@ -726,16 +770,17 @@ function tabMore(){
  <div class="cd prof"><div class="av" style="font-size:26px;background:#0f172a;border:1px solid var(--line)">${P.ic||'👤'}</div><div><b>${E(pr||'None chosen')}</b><small>${E(P.tag||'')}</small></div></div>
  <div style="margin-top:12px"><button class="btn gho" data-a="edit" data-s="profile">Change profile</button></div>
  <div class="h3s">Your setup</div>
- <div class="fl"><div><span>Plan</span><b>${SW.data.tier==='paid'?'Copilot':'Core (free)'}</b></div><div><span>${E(incLabel())}</span><b>${R(st.income)}</b></div><div><span>Existing savings</span><b>${R(st.savings)}</b></div>${L?`<div><span>Quest XP</span><b>⭐ ${st.learn.xp}</b></div>`:`<div><span>Debts you owe</span><b>${R(st.debt||0)}</b></div><div><span>Dependents</span><b>${st.dependents||0}</b></div><div><span>Fixed commitments</span><b>${R(p.fx)}</b></div>`}${ans}</div>
+ <div class="fl"><div><span>${E(incLabel())}</span><b>${R(st.income)}</b></div><div><span>Existing savings</span><b>${R(st.savings)}</b></div>${L?`<div><span>Quest XP</span><b>⭐ ${st.learn.xp}</b></div>`:`<div><span>Debts you owe</span><b>${R(st.debt||0)}</b></div><div><span>Dependents</span><b>${st.dependents||0}</b></div><div><span>Fixed commitments</span><b>${R(p.fx)}</b></div>`}${ans}</div>
  ${!L&&st.fixed.length?'<div class="fl" style="margin-top:10px">'+st.fixed.map(x=>`<div><span>${E(x.n||'Item')}</span><b>${R(+x.a||0)}</b></div>`).join('')+'</div>':''}
  <div style="margin-top:12px"><button class="btn gho" data-a="edit" data-s="${L?'money':'basics'}">Edit setup</button></div>
  <div class="h3s">Weekly statement</div>
  <div class="cd"><b>Your money habits, reviewed weekly.</b><p class="s2" style="margin-top:6px">Generate a PDF with your last 7 days of recorded spending, category breakdown, AI observations, and a practical plan for next week. The report only uses data available in SpendWise.</p>
  <button class="btn pri" style="width:100%;margin-top:14px" data-a="weekly-statement" ${statementBusy?'disabled':''}>${statementBusy?'Generating your statement…':'✦ Generate weekly PDF'}</button>
  <p class="fn">AI observations are based on recorded data and may be imperfect. This is general guidance, not regulated financial advice.</p></div>
+ <div class="h3s">Your plan</div>
+ <div class="cd"><b>${isPaid()?'Copilot':'Core (free)'}</b><p class="s2" style="margin-top:6px">${isPaid()?'You have Copilot.':'Core includes your safe-to-spend plan, a verdict before every purchase and 2 goal vaults. Copilot is not on sale yet.'+(SW.data.waitlist?' You are on the Copilot waitlist.':'')}</p>${!isPaid()&&!SW.data.waitlist?'<button class="btn gho" style="margin-top:14px" data-a="waitlist">Join the Copilot waitlist</button>':''}</div>
  <div class="h3s">AI and privacy</div>
  <div class="cd"><b>${aiReady()?'AI is connected':'AI is not connected yet'}</b><p class="s2" style="margin-top:6px">When it is on, the AI only receives your numbers and choices: income, costs, goals and the multiple-choice answers in your profile. It never receives your name, email or anything you typed as free text. You choose whether to apply what it suggests.</p></div>
- ${SW.data.tier==='paid'?'':'<div class="h3s">Copilot</div><div class="cd"><b>'+(SW.data.waitlisted?'You are on the Copilot waitlist':'Copilot is coming soon')+'</b><p class="s2" style="margin-top:6px">Copilot adds unlimited goal vaults, and is planned to add automatic UPI and bank sync, predictive AI verdicts and deeper insights. Payments are not open yet, so nothing is charged.</p>'+(SW.data.waitlisted?'':'<button class="btn gho" style="margin-top:14px" data-a="upgrade">Join the waitlist</button>')+'</div>'}
  <div class="h3s">Your data</div>
  <div class="cd"><b>Back up your data</b><p class="s2" style="margin-top:6px">Your data lives only on this device. Download an encrypted backup file and keep it safe, so clearing your browser or changing phones never wipes your plan. ${SW.data.lastBackup?'Last backup: '+new Date(SW.data.lastBackup).toLocaleDateString('en-IN')+'.':'You have not made a backup yet.'}</p>
  <div class="row" style="margin-top:14px"><button class="btn pri" data-a="backup">Download backup</button><button class="btn gho" data-a="restore">Restore from backup</button></div><input type="file" id="rfile" accept=".json,application/json" hidden></div>
@@ -747,9 +792,9 @@ const navItems=()=>{const L=isL();return[['home','Home',I.home],['spends','Spend
 function render(){
  if(!st.done){wizard();return}
  root.classList.toggle('big',!!pd().big);
- const body={home:tabHome,spends:tabSpends,plan:tabPlan,goals:tabGoals,ask:tabAsk,more:tabMore,invest:tabInvest,fx:tabFx}[tab]();
+ const body={home:tabHome,spends:tabSpends,plan:tabPlan,goals:tabGoals,ask:tabAsk,more:tabMore,invest:tabInvest,fxc:tabFx}[tab]();
  if(SW.setTab)SW.setTab(tab); /* remember the current tab so a reload returns here */
- root.innerHTML=`<div class="pg">${body}${tab==='home'?nudge():''}</div><nav class="nv" aria-label="App"><div>${navItems().map(n=>`<button data-a="go" data-t="${n[0]}" ${({invest:'plan',fx:'home'}[tab]||tab)===n[0]?'aria-current="page"':''}>${n[2]}${n[1]}</button>`).join('')}</div></nav>`;
+ root.innerHTML=`<div class="pg">${body}${tab==='home'?nudge():''}</div><nav class="nv" aria-label="App"><div>${navItems().map(n=>`<button data-a="go" data-t="${n[0]}" ${(tab==='invest'?'plan':tab==='fxc'?'spends':tab)===n[0]?'aria-current="page"':''}>${n[2]}${n[1]}</button>`).join('')}</div></nav>`;
  if(tab==='ask'){
   if(!st.chat)st.chat=[{role:'assistant',content:CHAT_HELLO,local:true}];
   const store={get msgs(){return st.chat},get busy(){return chatBusy},set busy(v){chatBusy=v},get err(){return chatErr},set err(v){chatErr=v}};
@@ -769,29 +814,60 @@ function allocate(){
  if(isL()){st.learn.xp+=20;toast('Jars filled! +20 XP ⭐ You can spend '+R(p.safe)+' freely.')}else toast(mname()+' allocated. You can spend '+R(p.safe)+' freely.');
 }
 function addSpend(){
- const raw=+($('sa').value)||0,n=$('sn').value.trim().slice(0,60);let a=Math.min(1e9,Math.round(raw)),fx=null;
- if(isO()&&scur!=='INR'&&raw>0){const r=fxRate(scur);if(!(r>0)){toast('Enter the rate for '+scur+' first.',1);return false}a=Math.min(1e9,Math.round(raw*r));fx={c:scur,amt:raw,rate:r}}
+ const n=$('sn').value.trim().slice(0,60),sc=$('sc'),cur=sc?sc.value:'INR';
+ let a=Math.min(1e9,Math.round(+($('sa').value)||0)),fx={};
+ if(cur!=='INR'){
+  const fa=Math.min(1e9,+($('sa').value)||0),r=+($('sr').value)||0;
+  if(!(fa>0)){toast('Enter the amount you spent.',1);$('sa').focus();return false}
+  if(!(r>0)){toast('Enter the exchange rate for '+cur+'.',1);$('sr').focus();return false}
+  a=Math.min(1e9,Math.round(fa*r));fx={cur,fa,rate:r};st.fxr[cur]={r,at:Date.now()};
+ }
  if(a<=0){toast('Enter the amount you spent.',1);$('sa').focus();return false}
- st.spends.push({id:Date.now()+'-'+Math.random().toString(36).slice(2,6),t:Date.now(),k:mk(),a,n,c:cat,w:isL()?nw:'',...(fx?{fx}:{})});
- let xp='';if(isL()){const td=new Date().toDateString();if(st.learn.logged!==td){st.learn.logged=td;st.learn.xp+=5;xp=' +5 XP ⭐'}}
- toast('Added '+R(a)+(cat?' · '+cat:'')+xp);cat='';nw='';return true;
+ const dv=($('sd')&&$('sd').value)||todayISO();
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(dv)){toast('Pick the date of the spend.',1);return false}
+ if(dv>todayISO()){toast('A spend cannot be dated in the future.',1);$('sd').focus();return false}
+ if(dv<minISO()){toast('That date is too far back. Use a date from the last 5 years.',1);$('sd').focus();return false}
+ const old=edSp?st.spends.find(x=>x.id===edSp):null,same=!!old&&isoOf(old.t)===dv;
+ const t=same?old.t:dv===todayISO()?Date.now():new Date(+dv.slice(0,4),+dv.slice(5,7)-1,+dv.slice(8,10),12).getTime(),k=dv.slice(0,7);
+ if(old){delete old.cur;delete old.fa;delete old.rate;Object.assign(old,{t,k,a,n,c:cat,w:isL()?nw:''},fx);toast('Spend updated.');edSp='';cat='';nw='';return true}
+ st.spends.push(Object.assign({id:Date.now()+'-'+Math.random().toString(36).slice(2,6),t,k,a,n,c:cat,w:isL()?nw:''},fx));
+ let xp='';if(isL()&&dv===todayISO()){const td=new Date().toDateString();if(st.learn.logged!==td){st.learn.logged=td;st.learn.xp+=5;xp=' +5 XP ⭐'}}
+ toast('Added '+R(a)+(cat?' · '+cat:'')+(dv===todayISO()?'':' · '+dlabel(t))+xp);cat='';nw='';return true;
 }
 
 /* ===== AI (optional) =====
    Sends only numbers. Never the name or email. The answer is validated and shown to the user, who decides to apply it. */
-async function aiAsk(messages,opt={}){
+const AI_TIMEOUT=120000,AI_SLOW_MS=10000;
+async function aiAsk0(messages,opt={}){
   const direct=!AI_CONFIG.ENDPOINT,headers={'Content-Type':'application/json'};
   if(direct){headers.Authorization='Bearer '+AI_CONFIG.DIRECT_KEY;headers['X-Title']='SpendWise'}
   const body={messages,temperature:opt.temperature??.2,max_tokens:opt.max_tokens??700};if(AI_CONFIG.MODEL)body.model=AI_CONFIG.MODEL;
-  const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),opt.timeout||45000);
+  let timedOut=false;const ctl=new AbortController(),to=setTimeout(()=>{timedOut=true;ctl.abort()},AI_TIMEOUT);
+ try{
  let r;try{r=await fetch(direct?'https://openrouter.ai/api/v1/chat/completions':AI_CONFIG.ENDPOINT,{method:'POST',headers,body:JSON.stringify(body),signal:ctl.signal})}
- catch{throw new Error('Could not reach the AI service. Check your connection and try again.')}finally{clearTimeout(to)}
+ catch{throw new Error(timedOut?'The AI took longer than 2 minutes, so SpendWise stopped waiting. Please try again.':'Could not reach the AI service. Check your connection and try again.')}
  if(!r.ok)throw new Error(r.status===402?'The AI service is out of credits.':r.status===429?'The free AI is at its usage limit right now. Wait a minute and try again, or come back later.':'The AI request failed ('+r.status+').');
- const j=await r.json(),content=j.choices?.[0]?.message?.content;
+ let j;try{j=await r.json()}catch{throw new Error(timedOut?'The AI took longer than 2 minutes, so SpendWise stopped waiting. Please try again.':'The AI sent a reply we could not read. Please try again.')}
+ const content=j.choices?.[0]?.message?.content;
  const strip=x=>String(x).replace(/<think>[\s\S]*?<\/think>/gi,'').replace(/<\/?think>/gi,'').trim();
  if(typeof content==='string')return strip(content);
  if(Array.isArray(content))return strip(content.map(part=>typeof part==='string'?part:part?.text||'').join(''));
  return'';
+ }finally{clearTimeout(to)}
+}
+/* Slow-reply notices: after 10 s a toast says the AI is still working. When it finishes (or fails), another toast says so on whichever page the person is on, and the tab title changes if the tab is in the background. */
+let aiTitleOn=false;
+function aiDone(opt,msg,bad){
+ const here=!opt.where||opt.where===tab;
+ toast((bad?'':'✓ ')+msg+(here?'':' Tap to open it.'),bad,{ms:9000,go:here?null:opt.where});
+ if(document.hidden&&!bad&&!aiTitleOn){aiTitleOn=true;const base=document.title;document.title='✓ AI replied · '+base;
+  const back=()=>{if(!document.hidden){document.title=base;aiTitleOn=false;document.removeEventListener('visibilitychange',back)}};document.addEventListener('visibilitychange',back)}
+}
+async function aiAsk(messages,opt={}){
+ let slow=false;
+ const timer=setTimeout(()=>{slow=true;toast('The AI is taking a while. Keep using SpendWise. We will tell you when it is ready.',0,{ms:7000})},AI_SLOW_MS);
+ try{const out=await aiAsk0(messages,opt);clearTimeout(timer);if(slow&&!opt.noDone)aiDone(opt,opt.what||'The AI has replied.');return out}
+ catch(e){clearTimeout(timer);if(slow&&!opt.noDone)aiDone(opt,(e&&e.message)||'The AI could not finish. Please try again.',1);throw e}
 }
 function parseAiJson(text){
  const source=String(text||'');
@@ -814,9 +890,9 @@ function parseAiJson(text){
 async function aiAllocate(){
  const p=plan();
  const snap={profile:SW.data.profile||'unspecified',monthly_income:st.income,existing_savings:st.savings,debts_owed:st.debt||0,about_you:pfSafe(),dependents:st.dependents||0,fixed_monthly_total:p.fx,
-  goals:st.goals.map(g=>({target:g.t,saved:g.s,months_left:months(g.d),monthly_needed:need(g)}))};
+  goals:st.goals.map(g=>({target:g.t,saved:g.s,months_left:months(g.d),monthly_needed:need(g),past_deadline:isLate(g)}))};
  const sys='You are a careful, plain-spoken personal-finance planning assistant for people in India. You receive one person\'s monthly numbers and suggest how to split their income. Reply with ONLY a JSON object, no markdown, in exactly this shape: {"emergency_pct":number,"invest_pct":number,"emergency_target_months":number,"why":{"emergency":string,"invest":string,"overall":string}}. Rules: percentages are of monthly income and between 0 and 30. emergency_target_months is between 1 and 12. fixed_monthly_total and the goals\' monthly_needed are already committed, so emergency_pct + invest_pct + ((fixed_monthly_total + sum of monthly_needed) / monthly_income * 100) must stay below 100, leaving money to spend. Adapt to the profile and dependents (for example a bigger cushion with dependents, simpler for children and seniors). Never name specific funds, stocks or products. Each "why" is at most two short sentences and shows the arithmetic. This is general guidance, not regulated advice.';
- const txt=await aiAsk([{role:'system',content:sys},{role:'user',content:JSON.stringify(snap)}]);
+ const txt=await aiAsk([{role:'system',content:sys},{role:'user',content:JSON.stringify(snap)}],{where:'plan',what:'Your AI plan suggestion is ready.'});
  let o;try{o=parseAiJson(txt)}catch{throw new Error('The AI gave an answer we could not read. Please try again.')}
  const e=+o.emergency_pct,i=+o.invest_pct,em=+o.emergency_target_months,w=o.why||{};
  const ok=Number.isFinite(e)&&Number.isFinite(i)&&Number.isFinite(em)&&e>=0&&e<=30&&i>=0&&i<=30&&em>=1&&em<=12;
@@ -853,15 +929,15 @@ function rr(m){const y=scrollY;if(st.done){render();if(m)toast(m,1)}else wizard(
 function start(r){
  root=r;st=Object.assign(blank(),SW.data.setup||{});
  /* a page reload restores the tab the person was on (SW.resume is set by restoreSession in index.html) */
- tab=['home','spends','plan','goals','ask','more','invest','fx'].includes(SW.resume&&SW.resume.tab)?SW.resume.tab:'home';SW.resume=null;
- cat='';nw='';scur='INR';vamt=0;game=null;aiBusy=false;aiErr='';chatBusy=false;chatErr='';
+ tab=['home','spends','plan','goals','ask','more','invest','fxc'].includes(SW.resume&&SW.resume.tab)?SW.resume.tab:'home';SW.resume=null;
+ cat='';nw='';edSp='';game=null;aiBusy=false;aiErr='';chatBusy=false;chatErr='';
  if(!Array.isArray(st.chat)||!st.chat.length)st.chat=[{role:'assistant',content:CHAT_HELLO,local:true}];
  if(!st.v||st.v<3){ /* earlier builds pre-filled percentages; clear them so nothing is a default */
   st.rules={e:null,i:null,em:null};st.v=3;delete st.bal;save()}
  st.rules=Object.assign({e:null,i:null,em:null},st.rules);
  st.pf=st.pf&&typeof st.pf==='object'&&!Array.isArray(st.pf)?st.pf:{};
- st.inv=Object.assign({sip:{},fd:{},tx:{},loan:{}},st.inv);['sip','fd','tx','loan'].forEach(k=>st.inv[k]=Object.assign({},st.inv[k]));fixTeen();
- st.fx=Object.assign({rates:{}},st.fx);st.fx.rates=Object.assign({},st.fx.rates);
+ st.inv=Object.assign({sip:{},fd:{},tx:{}},st.inv);['sip','fd','tx'].forEach(k=>st.inv[k]=Object.assign({},st.inv[k]));fixTeen();
+ st.fxc=Object.assign({cur:'',amt:'',rate:'',inr:''},st.fxc);st.fxr=st.fxr&&typeof st.fxr==='object'&&!Array.isArray(st.fxr)?st.fxr:{};
  st.learn=Object.assign({xp:0},st.learn);st.learn.jars=Object.assign({s:0,v:0,d:0},st.learn.jars);
  /* nobody reaches the dashboard without a profile (Google sign-in starts with none) */
  if(!SW.data.profile){st.done=false;st.step=0}
@@ -873,38 +949,45 @@ function start(r){
  if(window.SW_MEM)setTimeout(()=>toast('Your browser is blocking storage, so your data will be lost when you close this tab.',1),600);
  if(!root.dataset.b){root.dataset.b=1;
   root.addEventListener('input',e=>{const t=e.target;
-   if(t.id==='va'){vamt=Math.min(1e9,Math.max(0,+t.value||0));const o=$('vres');if(o)o.innerHTML=verdictHTML();return}
-   if(t.id==='sr'){st.fx.rates[scur]={r:Math.max(0,+t.value||0),at:Date.now()};return}
-   if(t.dataset.fx){const k=t.dataset.fx;if(k==='rate')st.fx.rates[fxCur()]={r:Math.max(0,+t.value||0),at:Date.now()};else if(k==='amt')st.fx.amt=Math.max(0,+t.value||0);const o=$('fres');if(o)o.innerHTML=fxRes();return}
-   if(t.dataset.c){const[g,k]=t.dataset.c.split('.');st.inv[g][k]=t.value===''?'':+t.value;const o=$('ires');if(o)o.innerHTML=g==='sip'?sipRes():g==='loan'?loanRes():fdRes();return}
+   if(t.id==='va'){vAmt=t.value;vAi={t:'',busy:false,err:''};const o=$('vres');if(o)o.innerHTML=verdictHTML();return}
+   if(t.id==='sa'||t.id==='sr'){spPrev();return}
+   if(t.dataset.x){const k=t.dataset.x;if(k!=='cur'){st.fxc[k]=t.value===''?'':+t.value;const o=$('xres');if(o)o.innerHTML=fxRes()}return}
+   if(t.dataset.c){const[g,k]=t.dataset.c.split('.');st.inv[g][k]=t.value===''?'':+t.value;const o=$('ires');if(o)o.innerHTML=g==='sip'?sipRes():fdRes();return}
    if(t.dataset.r){const k=t.dataset.r,mx=k==='em'?24:50;st.rules[k]=t.value===''?null:Math.max(0,Math.min(mx,+t.value||0));fixTeen();refreshPlan();return}
    const f=t.dataset.f;if(!f)return;const v=t.type==='number'?Math.min(1e9,Math.max(0,+t.value||0)):t.value;
    if(f.includes('.')){const[l,k]=f.split('.');if(t.dataset.i==null||t.dataset.i==='')st[l][k]=v;else st[l][+t.dataset.i][k]=v}else st[f]=v});
-  root.addEventListener('change',e=>{const t=e.target;if(t.id==='rfile'){const f=t.files&&t.files[0];t.value='';if(f)doRestore(f);return}
-   if(t.id==='sc'){scur=t.value;const w=$('srw');if(w){w.hidden=scur==='INR';const l=$('srl');if(l)l.textContent='Rupees per 1 '+scur;const r=$('sr');if(r)r.value=fxRate(scur)||''}const s=$('sal');if(s)s.textContent=scur==='INR'?'₹':scur;return}
-   if(t.id==='sr'){save();return}
-   if(t.dataset.fx){if(t.dataset.fx==='cur'){st.fx.cur=t.value;save();rr()}else save();return}
-   if(t.dataset.c)save();if(t.dataset.r){const v=st.rules[t.dataset.r];if(v!=null)t.value=v;save()}});
+  root.addEventListener('change',e=>{const t=e.target;
+   if(t.id==='sc'){spCur=t.value;const w=$('srw');if(w){w.hidden=spCur==='INR';const sv=st.fxr[spCur];if($('sr'))$('sr').value=sv?sv.r:'';if($('scn'))$('scn').textContent=spCur}spPrev();return}
+   if(t.dataset.x==='cur'){st.fxc.cur=t.value;const sv=st.fxr[t.value];st.fxc.rate=sv?sv.r:'';save();rr();return}
+   if(t.dataset.x){if(t.dataset.x==='rate'&&+t.value>0){const c=st.fxc.cur||curGuess();st.fxr[c]={r:+t.value,at:Date.now()}}save();return}if(t.id==='rfile'){const f=t.files&&t.files[0];t.value='';if(f)doRestore(f);return}if(t.dataset.c)save();if(t.dataset.r){const v=st.rules[t.dataset.r];if(v!=null)t.value=v;save()}});
   root.addEventListener('keydown',async e=>{if(e.key==='Enter'&&(e.target.id==='sa'||e.target.id==='sn')){e.preventDefault();if(spendBusy)return;spendBusy=true;try{if(addSpend()){await save();render()}}finally{spendBusy=false}}});
   root.addEventListener('click',async e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a;
-   if(a==='go'){tab=b.dataset.t;render();scrollTo(0,0);if(b.dataset.f&&$('sa'))$('sa').focus();if(b.dataset.v&&$('va'))$('va').focus()}
+   if(a==='go'){tab=b.dataset.t;edSp='';render();scrollTo(0,0);if(b.dataset.f&&$('sa'))$('sa').focus()}
    else if(a==='cat'){cat=cat===b.dataset.c?'':b.dataset.c;root.querySelectorAll('[data-a=cat]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.c===cat))}
    else if(a==='spend'){if(spendBusy)return;spendBusy=true;try{if(addSpend()){await save();render()}}finally{spendBusy=false}}
-   else if(a==='delspend'){if(!confirm('Delete this spend?'))return;st.spends=st.spends.filter(s=>s.id!==b.dataset.id);await save();render();toast('Spend removed.')}
+   else if(a==='editspend'){const s=st.spends.find(x=>x.id===b.dataset.id);if(!s)return;edSp=s.id;cat=s.c||'';nw=s.w||'';spCur=s.cur||'INR';tab='spends';render();scrollTo(0,0);if($('sa'))$('sa').focus()}
+   else if(a==='cancelspend'){edSp='';cat='';nw='';render()}
+   else if(a==='delspend'){if(!confirm('Delete this spend?'))return;if(edSp===b.dataset.id)edSp='';st.spends=st.spends.filter(s=>s.id!==b.dataset.id);await save();render();toast('Spend removed.')}
    else if(a==='alloc'){allocate();await save();render()}
    else if(a==='ai')runAI();
    else if(a==='aiapply'){const s=st.sug;st.rules={e:s.e,i:s.i,em:s.em};st.sug=null;await save();render();toast('Rules updated. Review them, then allocate.')}
    else if(a==='aidismiss'){st.sug=null;await save();render()}
    else if(a==='weekly-statement'){makeWeeklyStatement()}
+   else if(a==='gextend'){const g=st.goals[+b.dataset.i];if(!g)return;g.d=addMonths(+b.dataset.m);await save();render();toast('New date set: '+mlabel(g.d)+'.')}
+   else if(a==='waitlist'){SW.data.setup=st;await SW.upgrade();await save();render()}
+   else if(a==='vexplain')vExplain();
+   else if(a==='logv'){const v=Math.round(+vAmt||0);tab='spends';render();scrollTo(0,0);if($('sa')){$('sa').value=v||'';$('sa').focus()}}
+   else if(a==='addfx'){const n=b.dataset.n,v=+b.dataset.v||0;if(!st.fixed.some(x=>x.n===n))st.fixed.push({n,a:v});await save();render();toast('Added to your fixed costs. You can edit it in Edit setup.')}
+   else if(a==='addgoal'){if(!canAddGoal())return toast('Core includes 2 goal vaults. Join the Copilot waitlist (in More) for more.',1);st.goals.push({n:b.dataset.n,t:0,s:0,d:b.dataset.d||''});st.done=false;st.step=Math.max(0,STEPS().indexOf('goals'));wizard();scrollTo(0,0)}
+   else if(a==='fxget'){const cur=st.fxc.cur||curGuess();b.disabled=true;
+    try{const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),8000);const r=await fetch('https://api.frankfurter.dev/v1/latest?base='+cur+'&symbols=INR',{signal:ctl.signal});clearTimeout(to);const j=await r.json(),v=Math.round(+(j&&j.rates&&j.rates.INR)*10000)/10000;if(!(v>0))throw 0;
+     st.fxc.cur=cur;st.fxc.rate=v;st.fxr[cur]={r:v,at:Date.now()};await save();rr();toast('Rate updated. Check it against your bank.')}
+    catch{b.disabled=false;toast('Could not get today’s rate. Enter it by hand.',1)}}
    else if(a==='logout')SW.logout();
    else if(a==='delacct'){if(!confirm('Delete your account and all your SpendWise data? This cannot be undone.'))return;const ok=await SW.deleteAccount();if(!ok)toast('Could not delete the account right now. Check your connection and try again.',1)}
    else if(a==='backup'){SW.data.setup=st;const r=await SW.backup();if(r===true){toast('Backup downloaded. Keep it somewhere safe.');rr()}else if(r==='short')toast('Use at least 8 characters for the backup password.',1)}
    else if(a==='restore'){const f=$('rfile');if(f)f.click()}
    else if(a==='recov'){const r=await SW.recovery();if(r==='bad')toast('That password is not right.',1);else if(r==='ok')toast('Recovery code saved. Keep it somewhere safe.');rr()}
-   else if(a==='getrate')getRate(tab==='fx'?fxCur():scur);
-   else if(a==='fxdir'){st.fx.dir=b.dataset.v;await save();rr()}
-   else if(a==='vlog'){const sc=$('sc');if(sc&&sc.value!=='INR'){sc.value='INR';sc.dispatchEvent(new Event('change',{bubbles:true}))}const e=$('sa');if(e){e.value=Math.round(vamt);e.focus()}}
-   else if(a==='upgrade')SW.upgrade();
    else if(a==='isec'){invSec=b.dataset.s;rr()}
    else if(a==='hz'){invH=invH===b.dataset.k?'':b.dataset.k;rr()}
    else if(a==='sipuse'){st.inv.sip.m=plan().i;await save();rr()}
@@ -922,7 +1005,7 @@ function start(r){
    else if(a==='gans'){if(!game||game.a)return;const c=SL().items[game.q[game.i]];game.a=b.dataset.v;if(game.a===c.k){game.score++;st.learn.xp+=10}await save();rr()}
    else if(a==='gnext'){if(game){game.i++;game.a=''}rr()}
    else if(a==='af'){st.fixed.push({n:b.dataset.p,a:0});wizard()}
-   else if(a==='ag'){if(st.goals.length>=GOAL_LIMIT&&SW.data.tier!=='paid')return wizard('Core includes 2 goal vaults. Copilot, coming soon, adds unlimited vaults.');st.goals.push({n:b.dataset.p,t:0,s:0,d:''});wizard()}
+   else if(a==='ag'){if(!canAddGoal())return wizard('Core includes 2 goal vaults. Join the Copilot waitlist (in More) for unlimited goals.');st.goals.push({n:b.dataset.p,t:0,s:0,d:''});wizard()}
    else if(a==='del'){st[b.dataset.l].splice(+b.dataset.i,1);wizard()}
    else if(a==='back'){st.step--;wizard();scrollTo(0,0)}
    else if(a==='next'){
