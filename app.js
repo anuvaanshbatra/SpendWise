@@ -847,7 +847,8 @@ async function aiAsk0(messages,opt={}){
  let r;try{r=await fetch(direct?'https://openrouter.ai/api/v1/chat/completions':AI_CONFIG.ENDPOINT,{method:'POST',headers,body:JSON.stringify(body),signal:ctl.signal})}
  catch{throw new Error(timedOut?'The AI took longer than 2 minutes, so SpendWise stopped waiting. Please try again.':'Could not reach the AI service. Check your connection and try again.')}
  if(!r.ok)throw new Error(r.status===402?'The AI service is out of credits.':r.status===429?'The free AI is at its usage limit right now. Wait a minute and try again, or come back later.':'The AI request failed ('+r.status+').');
- let j;try{j=await r.json()}catch{throw new Error(timedOut?'The AI took longer than 2 minutes, so SpendWise stopped waiting. Please try again.':'The AI sent a reply we could not read. Please try again.')}
+ let j;try{j=JSON.parse((await r.text()).replace(/^\s*:.*$/gm,'').trim())}catch{throw new Error(timedOut?'The AI took longer than 2 minutes, so SpendWise stopped waiting. Please try again.':'The AI sent a reply we could not read. Please try again.')}
+ if(j&&j.error&&!j.choices)throw new Error('The AI model is busy right now ('+(j.error.message||j.error.code||'error')+'). Please try again.');
  const content=j.choices?.[0]?.message?.content;
  const strip=x=>String(x).replace(/<think>[\s\S]*?<\/think>/gi,'').replace(/<\/?think>/gi,'').trim();
  if(typeof content==='string')return strip(content);
